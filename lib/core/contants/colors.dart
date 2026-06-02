@@ -25,9 +25,5 @@ class AppColors {
   static const Color error = Color(0xFFF44336);
   static const Color info = Color(0xFF2196F3);
 
-  // Status Colors
-  static const Color statusPending = Color(0xFFFF9800);
-  static const Color statusProcess = Color(0xFF2196F3);
-  static const Color statusReady = Color(0xFF4CAF50);
-  static const Color statusDone = Color(0xFF9E9E9E);
+  
 }
