@@ -7,6 +7,7 @@ import 'package:moburger/core/contants/colors.dart';
 import 'package:moburger/core/widget/custom_button.dart';
 import 'package:moburger/core/widget/custom_textfield.dart';
 import 'package:moburger/ui/auth/register_page.dart';
+import 'package:moburger/ui/dashboard/customer_home_page.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -53,7 +54,10 @@ class _LoginScreenState extends State<LoginScreen> {
             if (state.user.role == 'admin') {
               // Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const AdminDashboardScreen()));
             } else {
-              // Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const CustomerHomeScreen()));
+              Navigator.pushReplacement(
+                context, 
+                MaterialPageRoute(builder: (_) => const CustomerDashboardScreen())
+              );
             }
           }
 
