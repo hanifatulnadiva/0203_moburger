@@ -65,6 +65,7 @@ dev_dependencies:
   change_app_package_name: ^1.5.0
   flutter_launcher_icons: ^0.14.3
   flutter_lints: ^6.0.0
+  flutter_native_splash: ^2.4.4
   flutter_test:
     sdk: flutter
 
@@ -78,6 +79,17 @@ flutter_launcher_icons:
   image_path: "assets/logo.png"
   adaptive_icon_background: "#FFFFF8F0"
   adaptive_icon_foreground: "assets/logo.png"
+
+flutter_native_splash:
+  color: "#FFF8F0"
+  image: "assets/logo.png"
+  
+  android: true
+  ios: true
+
+  android_12:
+    image: "assets/logo.png"
+    color: "#FFF8F0"
 
 # The following section is specific to Flutter packages.
 flutter:
