@@ -7,6 +7,11 @@ abstract class ToppingEvent extends Equatable {
   @override
   List<Object> get props => [];
 }
+class FetchToppingByKategori extends ToppingEvent {
+  final String kategoriMenu;
+
+  FetchToppingByKategori(this.kategoriMenu);
+}
 
 class FetchTopping extends ToppingEvent{}
 class CreateTopping extends ToppingEvent{
