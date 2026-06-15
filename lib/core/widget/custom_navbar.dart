@@ -39,11 +39,11 @@ class CustomBottomBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final navItems = _getNavItems();
     return Container(
-      margin: const EdgeInsets.fromLTRB(18, 0, 18, 24),
+      margin: const EdgeInsets.fromLTRB(10, 0, 10, 30),
       height: 70,
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(35),
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(30),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.08),

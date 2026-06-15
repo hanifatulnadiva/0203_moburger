@@ -67,15 +67,14 @@ class AuthBloc extends Bloc<AuthEvent, AuthState>{
       }
     });
 
+    // Di AuthBloc
     on<LogoutRequested>((event, emit) async {
       emit(AuthLoading());
       try {
-        await repository.logout();
-        emit(Unauthenticated());
-        developer.log('Logged Out', name: 'AuthBloc');
+        await Supabase.instance.client.auth.signOut();
+        emit(Unauthenticated()); 
       } catch (e) {
         emit(AuthError(e.toString()));
-        developer.log('Logout Error: $e', name: 'AuthBloc');
       }
     });
   }

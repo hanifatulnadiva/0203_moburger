@@ -23,6 +23,7 @@ class AppConstants {
 
   // PAGINATION
   static const int defaultPageSize = 10;
+  static const int initialPage = 1;
 
   // VALIDATION
   static const int minPasswordLength = 6;

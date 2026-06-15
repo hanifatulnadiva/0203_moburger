@@ -219,6 +219,8 @@ class _ToppingPageState extends State<ToppingPage> {
       floatingActionButton: Padding(
         padding: const EdgeInsets.only(bottom: 90.0),
         child: FloatingActionButton(
+          // Tambahkan heroTag agar unik dan tidak bentrok dengan halaman lain
+          heroTag: 'fab_topping_add', 
           onPressed: () => _showFormDialog(context),
           backgroundColor: AppColors.orange,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.0)),
@@ -337,16 +339,25 @@ class _ToppingPageState extends State<ToppingPage> {
                   item.nama_topping ?? '',
                   style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.textPrimary),
                 ),
-                subtitle: Padding(
-                  padding: const EdgeInsets.only(top: 4.0),
-                  child: Text(
-                    (item.kategori ?? '').toUpperCase() == 'LEVEL' ? 'Gratis / Kustom' : 'Rp ${_formatPrice(item.harga)}',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: (item.kategori ?? '').toLowerCase() == 'level' ? AppColors.textSecondary : AppColors.orange,
-                      fontWeight: FontWeight.w600,
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 4),
+                    Text(
+                      (item.kategori ?? '').toUpperCase() == 'LEVEL' ? 'Gratis / Kustom' : 'Rp ${_formatPrice(item.harga)}',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: (item.kategori ?? '').toLowerCase() == 'level' ? AppColors.textSecondary : AppColors.orange,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
-                  ),
+                    const SizedBox(height: 4),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(color: isAvailable ? AppColors.success.withOpacity(0.12) : AppColors.error.withOpacity(0.12), borderRadius: BorderRadius.circular(20)),
+                      child: Text(isAvailable ? 'Tersedia' : 'Habis', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: isAvailable ? AppColors.success : AppColors.error)),
+                    ),
+                  ],
                 ),
                 trailing: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -359,7 +370,7 @@ class _ToppingPageState extends State<ToppingPage> {
                       inactiveThumbColor: AppColors.textSecondary.withOpacity(0.5),
                       materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       // [Fix]: Oper id asli tanpa string casting paksa agar tipe data di database match
-                      onChanged: (val) => _toggleAvailability(item.id, isAvailable),
+                      onChanged: (val) => _toggleAvailability(item.id.toString(), isAvailable),
                     ),
                     PopupMenuButton<String>(
                       icon: const Icon(Icons.more_vert_rounded, color: AppColors.textSecondary),

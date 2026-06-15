@@ -1,4 +1,3 @@
-
 import 'package:equatable/equatable.dart';
 
 abstract class ToppingEvent extends Equatable {
@@ -7,31 +6,33 @@ abstract class ToppingEvent extends Equatable {
   @override
   List<Object> get props => [];
 }
+
 class FetchToppingByKategori extends ToppingEvent {
   final String kategoriMenu;
 
   FetchToppingByKategori(this.kategoriMenu);
 }
 
-class FetchTopping extends ToppingEvent{}
-class CreateTopping extends ToppingEvent{
+class FetchTopping extends ToppingEvent {}
+
+class CreateTopping extends ToppingEvent {
   final Map<String, dynamic> data;
   const CreateTopping(this.data);
   @override
-  List <Object> get props =>[data];
+  List<Object> get props => [data];
 }
-class UpdateTopping extends ToppingEvent{
-  final int id;
+
+class UpdateTopping extends ToppingEvent {
+  final String id;
   final Map<String, dynamic> data;
   const UpdateTopping(this.id, this.data);
-  @override 
-  List<Object> get props =>[id, data];
+  @override
+  List<Object> get props => [id, data];
 }
 
-class DeleteTopping extends ToppingEvent{
-  final int id;
+class DeleteTopping extends ToppingEvent {
+  final String id;
   const DeleteTopping(this.id);
   @override
-  List<Object> get props=>[id];
+  List<Object> get props => [id];
 }
-

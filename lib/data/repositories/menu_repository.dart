@@ -1,3 +1,5 @@
+import 'package:moburger/bloc/menu/menu_bloc.dart';
+import 'package:moburger/core/contants/app_contants.dart';
 import 'package:moburger/data/models/menu_model.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -7,20 +9,27 @@ class MenuRepository {
   MenuRepository({SupabaseClient? supabaseClient})
       : _supabase = supabaseClient ?? Supabase.instance.client;
 
-  Future<List<MenuModel>> getAllMenu ({String? kategori}) async{
+  Future<List<MenuModel>> getAllMenu ({int page =1, String? kategori}) async{
     try{
+      final limit = AppConstants.defaultPageSize;
+      final from  = (page -1)*limit;
+      final to = from +limit -1;
+
       var query = _supabase
       .from('menu').select('*');
+    
       if(kategori != null){
         query=query.eq('kategori', kategori);
       }
-      final List<dynamic> response = await query;
+      final response = await query
+      .order('created_at',ascending: false).range(from, to);
+      // final List<dynamic> response = await query;
       return response.map((item)=> MenuModel.fromJson(item)).toList();
     }catch(e){
       throw Exception('Gagal mengambil data menu: $e');
     }
   }
-  Future<MenuModel> getMenuById(int id)async{
+  Future<MenuModel> getMenuById(String id)async{
     try{
       final response = await _supabase 
         .from('menu').select('*').eq('id', id).single();
@@ -42,7 +51,7 @@ class MenuRepository {
   }
 
   //update menu(admin)
-  Future<MenuModel> updateMenu (int id, Map<String, dynamic> data) async{
+  Future<MenuModel> updateMenu (String id, Map<String, dynamic> data) async{
     try{
       final response = await _supabase
       .from('menu').update(data).eq('id', id).select('*').single();
@@ -52,13 +61,14 @@ class MenuRepository {
     }
   }
   //delete
-  Future<MenuModel> deleteMenu (int id) async{
-    try{
-      final data = await _supabase
-      .from('menu').delete().eq('id', id).single();
-      return MenuModel.fromJson(data);
-    }catch(e){
-      throw Exception ('Gagal menghapus data menu:$e');
+  Future<void> deleteMenu(String id) async {
+    try {
+      await _supabase
+          .from('menu')
+          .delete()
+          .eq('id', id);
+    } catch (e) {
+      throw Exception('Gagal menghapus data menu: $e');
     }
   }
 }

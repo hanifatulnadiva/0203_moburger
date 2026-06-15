@@ -27,8 +27,15 @@ class AuthRepository {
       if (response.user == null) {
         throw const AuthException('Registrasi gagal, user kosong.');
       }
+      await _supabase.from('users').insert({
+        'id': response.user!.id,
+        'nama_lengkap': nama_lengkap,
+        'email': email.trim(),
+        'nohp': nohp,
+        'role': 'customer',
+      });
 
-      return _mapSupabaseUserToUserModel(response.user!);
+      return await _fetchUserFromTable(response.user!.id, email.trim());
     } on AuthException catch (e) {
       throw Exception(e.message);
     } catch (e) {
@@ -47,7 +54,7 @@ class AuthRepository {
         throw const AuthException('Login gagal, user tidak ditemukan.');
       }
 
-      return _mapSupabaseUserToUserModel(response.user!);
+      return await _fetchUserFromTable(response.user!.id, response.user!.email ?? '');
     } on AuthException catch (e) {
       throw Exception(e.message);
     } catch (e) {
@@ -55,37 +62,38 @@ class AuthRepository {
     }
   }
 
+  Future<UserModel?> getCurrentUser() async {
+    final user = _supabase.auth.currentUser;
+    if (user == null) return null;
+    return await _fetchUserFromTable(user.id, user.email ?? '');
+  }
+
+  Future<UserModel> _fetchUserFromTable(String uid, String email) async {
+    print('[DEBUG] uid yang dicari: $uid');
+    print('[DEBUG] email yang dicari: $email');
+    final allData = await _supabase.from('users').select();
+    print('[DEBUG] Semua data di tabel users: $allData');
+
+    final data = await _supabase
+        .from('users')
+        .select()
+        .eq('id', uid)
+        .single();
+
+    return UserModel.fromJson({...data, 'email': email});
+  }
+
   Future<void> signInWithGoogle() async {
     try {
       await _supabase.auth.signInWithOAuth(
         OAuthProvider.google,
-        redirectTo: 'io.supabase.moburger://login-callback/', 
+        redirectTo: 'io.supabase.moburger://login-callback/',
       );
     } on AuthException catch (e) {
       throw Exception(e.message);
     } catch (e) {
       throw Exception('Terjadi kesalahan saat Google Sign-In: $e');
     }
-  }
-
-  UserModel _mapSupabaseUserToUserModel(User supabaseUser) {
-    final metadata = supabaseUser.userMetadata ?? {};
-
-    final namaDariGoogle = metadata['full_name'] ?? metadata['name'] ?? '';
-
-    return UserModel(
-      id: supabaseUser.id,
-      email: supabaseUser.email ?? '',
-      nama_lengkap: metadata['nama_lengkap'] ?? namaDariGoogle,
-      nohp: metadata['nohp'] ?? '',
-      role: metadata['role'] ?? 'customer', 
-    );
-  }
-
-  Future<UserModel?> getCurrentUser() async {
-    final user = _supabase.auth.currentUser;
-    if (user == null) return null;
-    return _mapSupabaseUserToUserModel(user);
   }
 
   Future<void> logout() async {

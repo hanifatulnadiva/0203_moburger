@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:moburger/bloc/auth/auth_bloc.dart';
 import 'package:moburger/bloc/auth/auth_event.dart';
 import 'package:moburger/bloc/auth/auth_state.dart';
 import 'package:moburger/core/contants/colors.dart';
+import 'package:moburger/core/contants/text.dart';
 import 'package:moburger/core/widget/custom_button.dart';
 import 'package:moburger/core/widget/custom_textfield.dart';
 
@@ -85,8 +87,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             ),
                           ),
                           const SizedBox(height: 8),
-                          const Text(
-                            'Create New Account',
+                          const Text('Create New Account',
                             style: TextStyle(
                               fontSize: 28,
                               fontWeight: FontWeight.bold,
@@ -123,34 +124,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         mainAxisSize: MainAxisSize.min,
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          const Text(
-                            'Register',
+                          const Text('Register',
                             textAlign: TextAlign.left,
-                            style: TextStyle(
-                              fontSize: 20, 
-                              fontWeight: FontWeight.bold, 
-                              color: AppColors.darkRed,
-                            ),
+                            style: AppTextStyles.headingBold
                           ),
                           const SizedBox(height: 4),
-                          const Text(
-                            'Lengkapi data diri Anda untuk mulai memesan',
+                          const Text('Lengkapi data diri Anda untuk mulai memesan',
                             textAlign: TextAlign.left,
-                            style: TextStyle(
-                              fontSize: 13, 
-                              color: AppColors.textSecondary,
-                            ),
+                            style: AppTextStyles.bodyRegular
                           ),
                           const SizedBox(height: 24),
                           
-                          const Text(
-                            'Nama Lengkap',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.textPrimary,
-                            ),
-                          ),
+                          const Text('Nama Lengkap',style: AppTextStyles.formLabel),
                           const SizedBox(height: 6),
                           CustomTextField(
                             controller: _nameController,
@@ -158,40 +143,46 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             prefixIcon: Icons.person_outline,
                             validator: (val) {
                               if (val == null || val.isEmpty) return 'Nama tidak boleh kosong';
+                              final regex = RegExp(r"^[a-zA-Z\s'-]+$");
+                              if (!regex.hasMatch(val)) {
+                                return 'Nama hanya boleh huruf, spasi, tanda (-) atau (\')';
+                              }
+                              if (val.trim().length < 2) {
+                                return 'Nama terlalu pendek';
+                              }
                               return null;
                             },
                           ),
                           const SizedBox(height: 14),
 
-                          const Text(
-                            'Nomor Telepon',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.textPrimary,
-                            ),
+                          const Text('Nomor Telepon',
+                            style: AppTextStyles.formLabel
                           ),
                           const SizedBox(height: 6),
                           CustomTextField(
                             controller: _phoneController,
                             hintText: 'Nomor HP (WhatsApp)',
                             prefixIcon: Icons.phone_android_outlined,
+                            inputFormatters: [
+                              FilteringTextInputFormatter.digitsOnly,
+                            ],
                             keyboardType: TextInputType.phone,
                             validator: (val) {
                               if (val == null || val.isEmpty) return 'Nomor HP tidak boleh kosong';
                               if (val.length < 10) return 'Nomor HP minimal 10 digit';
+                              String phone = val.replaceAll(' ', '');
+                              final regex = RegExp(r'^(\\+62|62|0)8[1-9][0-9]{7,11}$');
+
+                              if (!regex.hasMatch(phone)) {
+                                return 'Format nomor HP tidak valid';
+                              }
                               return null;
                             },
                           ),
                           const SizedBox(height: 14),
 
-                          const Text(
-                            'Email',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.textPrimary,
-                            ),
+                          const Text('Email',
+                            style: AppTextStyles.formLabel
                           ),
                           const SizedBox(height: 6),
                           CustomTextField(
@@ -207,66 +198,38 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           ),
                           const SizedBox(height: 14),
 
-                          const Text(
-                            'Password',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.textPrimary,
-                            ),
+                          const Text('Password',
+                            style: AppTextStyles.formLabel
                           ),
                           const SizedBox(height: 6),
-                          TextFormField(
+                          CustomTextField(
                             controller: _passwordController,
+                            prefixIcon: Icons.lock_outline,
                             obscureText: _obscurePassword,
-                            autovalidateMode: AutovalidateMode.onUserInteraction,
-                            style: const TextStyle(color: AppColors.textPrimary, fontSize: 16),
+                            //autovalidateMode: AutovalidateMode.onUserInteraction,
+                            hintText: 'Masukkan password',
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                _obscurePassword
+                                    ? Icons.visibility_off_outlined
+                                    : Icons.visibility_outlined,
+                                color: AppColors.textSecondary,
+                              ),
+                              onPressed: () {
+                                setState(() {
+                                  _obscurePassword = !_obscurePassword;
+                                });
+                              },
+                            ),
                             validator: (val) {
-                              if (val == null || val.isEmpty) return 'Password tidak boleh kosong';
-                              if (val.length < 6) return 'Password minimal 6 karakter';
+                              if (val == null || val.isEmpty) {
+                                return 'Password tidak boleh kosong';
+                              }
+                              if (val.length < 6) {
+                                return 'Password minimal 6 karakter';
+                              }
                               return null;
                             },
-                            decoration: InputDecoration(
-                              hintText: 'Masukkan password',
-                              hintStyle: const TextStyle(color: AppColors.textSecondary, fontSize: 15),
-                              prefixIcon: const Icon(Icons.lock_outline, color: AppColors.darkRed),
-                              suffixIcon: IconButton(
-                                icon: Icon(
-                                  _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                                  color: AppColors.textSecondary,
-                                ),
-                                onPressed: () {
-                                  setState(() {
-                                    _obscurePassword = !_obscurePassword;
-                                  });
-                                },
-                              ),
-                              floatingLabelBehavior: FloatingLabelBehavior.never,
-                              filled: true,
-                              fillColor: AppColors.white,
-                              contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
-                              errorStyle: const TextStyle(
-                                color: AppColors.error,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500,
-                              ),
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: const BorderSide(color: AppColors.textSecondary, width: 1),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: const BorderSide(color: AppColors.orange, width: 2),
-                              ),
-                              errorBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: const BorderSide(color: AppColors.error, width: 1),
-                              ),
-                              focusedErrorBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: const BorderSide(color: AppColors.error, width: 2),
-                              ),
-                            ),
                           ),
                           const SizedBox(height: 24),
 
@@ -297,18 +260,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             children: [
                               const Text(
                                 'Sudah punya akun? ',
-                                style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
+                                style: AppTextStyles.bodyRegular,
                               ),
                               GestureDetector(
-                                onTap: () => Navigator.pop(context),
-                                child: const Text(
-                                  'Masuk Di Sini',
-                                  style: TextStyle(
-                                    color: AppColors.orange, 
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 14,
-                                  ),
-                                ),
+                                onTap: (){
+                                  _nameController.clear();
+                                  _phoneController.clear();
+                                  _emailController.clear();
+                                  _passwordController.clear();
+                                  _formKey.currentState?.reset();
+                                  Navigator.pop(context);
+                                } ,
+                                child: const Text('Masuk Disini',style: AppTextStyles.bodyOrange)
                               ),
                             ],
                           ),

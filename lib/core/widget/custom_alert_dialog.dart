@@ -13,8 +13,8 @@ class CustomAlertDialog {
       builder: (context) => AlertDialog(
         backgroundColor: AppColors.background,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-        title: Text(title, style: TextStyle(color: AppColors.yellow, fontWeight: FontWeight.bold)),
-        content: Text(content, style: TextStyle(color: AppColors.white)),
+        title: Text(title, style: TextStyle(color: AppColors.textPrimary, fontWeight: FontWeight.bold)),
+        content: Text(content, style: TextStyle(color: AppColors.textSecondary)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),

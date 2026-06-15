@@ -1,5 +1,5 @@
-class ToppingModel{
-  final int id;
+class ToppingModel {
+  final String id;
   final String nama_topping;
   final int harga;
   final String kategori;
@@ -13,12 +13,12 @@ class ToppingModel{
     required this.tersedia,
   });
 
-  factory ToppingModel.fromJson(Map<String,dynamic> json){
+  factory ToppingModel.fromJson(Map<String, dynamic> json) {
     return ToppingModel(
-      id: json['id'] ?? 0, 
+      id: json['id'] ?? 0,
       nama_topping: json['nama_topping'] ?? '',
-      harga:json['harga'] ?? 0,
-      kategori: json['kategori']?? '',
+      harga: json['harga'] ?? 0,
+      kategori: json['kategori'] ?? '',
       tersedia: json['tersedia'] ?? false,
     );
   }

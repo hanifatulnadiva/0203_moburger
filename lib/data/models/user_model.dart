@@ -21,7 +21,7 @@ class UserModel extends Equatable{
       nama_lengkap: json['nama_lengkap'] ?? '',
       email: json['email'] ?? '',
       nohp: json['nohp'] ?? '',
-      role: json['role'] ?? '',
+      role: json['role'] ?? 'customer',
 
     );
   }
