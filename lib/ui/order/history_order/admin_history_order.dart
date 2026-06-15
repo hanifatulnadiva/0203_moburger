@@ -44,8 +44,8 @@ class _AdminOrderHistoryScreenState extends State<AdminOrderHistoryScreen> {
         listener: (context, state) {
           if (state is OrderStatusUpdateSuccess) {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: const Text('Status pesanan berhasil diperbarui!'),
+              const SnackBar(
+                content: Text('Status pesanan berhasil diperbarui!'),
                 backgroundColor: AppColors.success,
                 behavior: SnackBarBehavior.floating,
               ),
@@ -68,45 +68,49 @@ class _AdminOrderHistoryScreenState extends State<AdminOrderHistoryScreen> {
           }
 
           if (state is OrderHistoryLoadSuccess) {
-            final allOrders = state.orders;
-            final fifoOrders = List<OrderModel>.from(allOrders).reversed.toList();
+            // Filter: Abaikan status 'pending'
+            final activeOrders = state.orders
+                .where((o) => o.status != 'pending')
+                .toList()
+                .reversed
+                .toList();
 
-            final totalHariIni = fifoOrders.length;
-            final selesai = fifoOrders.where((o) => o.status == 'selesai').length;
-            final proses = fifoOrders.where((o) => o.status == 'proses' || o.status == 'pending').length;
-            final siap = fifoOrders.where((o) => o.status == 'siap diambil').length;
+            final totalActive = activeOrders.length;
+            final selesai = activeOrders.where((o) => o.status == 'selesai').length;
+            final diprosess = activeOrders.where((o) => o.status == 'diprosess').length;
+            final siap = activeOrders.where((o) => o.status == 'siap diambil').length;
 
-            if (fifoOrders.isEmpty) {
+            if (activeOrders.isEmpty) {
               return const EmptyStateWidget(
                 icon: Icons.storefront_outlined,
                 title: 'Antrean Kosong',
-                description: 'Belum ada pesanan masuk dari pelanggan untuk hari ini.',
+                description: 'Tidak ada pesanan aktif saat ini.',
               );
             }
 
-            final totalPages = (fifoOrders.length / _itemsPerPage).ceil();
+            final totalPages = (activeOrders.length / _itemsPerPage).ceil();
             int safePage = _currentPage >= totalPages ? (totalPages - 1).clamp(0, totalPages - 1) : _currentPage;
             final startIndex = safePage * _itemsPerPage;
-            final pagedOrders = fifoOrders.sublist(startIndex, (startIndex + _itemsPerPage).clamp(0, fifoOrders.length));
+            final pagedOrders = activeOrders.sublist(startIndex, (startIndex + _itemsPerPage).clamp(0, activeOrders.length));
 
             return RefreshIndicator(
               color: AppColors.orange,
               onRefresh: () async => _refresh(),
               child: SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.all(16.0),
+                padding: const EdgeInsets.only(top:16, right:16, left:16, bottom: 100),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildStatusGrid(totalHariIni, proses, selesai),
+                    _buildStatusGrid(totalActive, diprosess, selesai),
                     const SizedBox(height: 24),
                     _buildSectionHeader('Statistik Pesanan', Icons.pie_chart_rounded),
                     const SizedBox(height: 12),
-                    _buildPieChart(proses: proses, siap: siap, selesai: selesai),
+                    _buildPieChart(proses: diprosess, siap: siap, selesai: selesai),
                     const SizedBox(height: 24),
-                    _buildSectionHeader('Antrean Pesanan Masuk', Icons.list_alt_rounded),
+                    _buildSectionHeader('Antrean Pesanan Aktif', Icons.list_alt_rounded),
                     const SizedBox(height: 12),
-                    ...pagedOrders.map((order) => AdminOrderCard(order:order)),
+                    ...pagedOrders.map((order) => AdminOrderCard(order: order)),
                     if (totalPages > 1) _buildPaginationControls(safePage, totalPages),
                   ],
                 ),
@@ -123,7 +127,7 @@ class _AdminOrderHistoryScreenState extends State<AdminOrderHistoryScreen> {
   Widget _buildStatusGrid(int total, int proses, int selesai) {
     return Row(
       children: [
-        Expanded(child: OptionCard(label: 'Total Order', value: '$total', icon: Icons.receipt_long, color: AppColors.darkRed)),
+        Expanded(child: OptionCard(label: 'Total Aktif', value: '$total', icon: Icons.receipt_long, color: AppColors.darkRed)),
         const SizedBox(width: 12),
         Expanded(child: OptionCard(label: 'Dalam Proses', value: '$proses', icon: Icons.fire_truck, color: AppColors.orange)),
         const SizedBox(width: 12),
@@ -135,7 +139,7 @@ class _AdminOrderHistoryScreenState extends State<AdminOrderHistoryScreen> {
   // ===== COMPONENTS =====
   PreferredSizeWidget _buildAppBar() => AppBar(
     backgroundColor: AppColors.background,
-    title: const Text('Managemen Order', style: AppTextStyles.judul),
+    title: const Text('Manajemen Order', style: AppTextStyles.judul),
     actions: [IconButton(icon: const Icon(Icons.refresh, color: AppColors.white), onPressed: _refresh)],
   );
 
@@ -225,7 +229,7 @@ class _AdminOrderHistoryScreenState extends State<AdminOrderHistoryScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildIndicator(color: AppColors.orange, text: 'Dalam Proses / Pending'),
+                _buildIndicator(color: AppColors.orange, text: 'Dalam Proses '),
                 const SizedBox(height: 8),
                 _buildIndicator(color: AppColors.yellow, text: 'Siap Diambil'),
                 const SizedBox(height: 8),
@@ -251,16 +255,10 @@ class _AdminOrderHistoryScreenState extends State<AdminOrderHistoryScreen> {
   // ===== STATUS COLOR HELPERS =====
   Color _statusBadgeColor(String status) {
     switch (status) {
-      case 'pending':
-        return AppColors.darkRed;
-      case 'proses':
-        return AppColors.orange;
-      case 'siap diambil':
-        return AppColors.info;
-      case 'selesai':
-        return AppColors.success;
-      default:
-        return Colors.grey;
+      case 'diprosess': return AppColors.orange;
+      case 'siap diambil': return AppColors.info;
+      case 'selesai': return AppColors.success;
+      default: return Colors.grey;
     }
   }
 
@@ -268,7 +266,7 @@ class _AdminOrderHistoryScreenState extends State<AdminOrderHistoryScreen> {
     switch (status) {
       case 'pending':
         return AppColors.darkRed;
-      case 'proses':
+      case 'diprosess':
         return AppColors.orange;
       case 'siap diambil':
         return AppColors.yellow;

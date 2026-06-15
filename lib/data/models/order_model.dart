@@ -50,6 +50,7 @@ class OrderModel extends Equatable{
       payment_method: json['payment_method'],
       transaction_id: json['transaction_id'],
       snap_token: json['snap_token'],
+      notes: json['notes']
     );
   }
   @override

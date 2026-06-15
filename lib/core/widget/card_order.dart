@@ -19,7 +19,7 @@ class AdminOrderCard extends StatelessWidget {
     String? nextStatus;
     
     // Logika status
-    if (order.status == 'diproses') { 
+    if (order.status == 'diprosess') { 
       nextAction = 'Siap Diambil'; 
       nextStatus = 'siap diambil'; 
     } else if (order.status == 'siap diambil') { 
@@ -65,7 +65,7 @@ class AdminOrderCard extends StatelessWidget {
   Color _statusBadgeColor(String status) {
     switch (status) {
       case 'pending': return AppColors.darkRed;
-      case 'diproses': return AppColors.orange;
+      case 'diprosess': return AppColors.orange;
       case 'siap diambil': return AppColors.info;
       case 'selesai': return AppColors.success;
       default: return Colors.grey;

@@ -68,14 +68,17 @@ Stream<OrderModel?> streamOrderById(String orderNumber) {
 }
 
 Future<void> updateOrderStatus({
-  required String orderNumber, // Ganti parameter dari orderId ke orderNumber
+  required String orderId,
   required String status,
 }) async {
+  print("Attempting to update Supabase: order_number=$orderId, status=$status");
   try {
-    await _supabase
+    final response=await _supabase
         .from('order')
         .update({'status': status})
-        .eq('order_number', orderNumber); // Filter menggunakan order_number
+        .eq('id', orderId)
+        .select();
+    print("Supabase update response: $response");
   } catch (e) {
     throw Exception('Gagal memperbarui status pesanan: $e');
   }
@@ -112,12 +115,12 @@ Future<void> updateOrderStatus({
       // PERBAIKAN: Menggunakan select() biasa untuk menghindari PostgrestException PGRST200
       final response = await _supabase
           .from('order')
-          .select() 
+          .select('*') 
           .order('created_at', ascending: false);
 
-      return (response as List)
-          .map((json) => OrderModel.fromJson(json))
-          .toList();
+      final List<dynamic> data = response as List<dynamic>;
+    
+      return data.map((json) => OrderModel.fromJson(json)).toList();
     } catch (e) {
       throw Exception('Gagal mengambil seluruh history pesanan (Admin): $e');
     }

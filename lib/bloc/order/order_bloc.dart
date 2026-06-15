@@ -21,11 +21,19 @@ class OrderBloc extends Bloc<OrderEvent, OrderState> {
   Future<void> _onCreateOrder(CreateOrderEvent event, Emitter<OrderState> emit) async {
     emit(OrderLoading());
     try {
-      final payload = event.items.map((item) => {
-        "menu_id": int.parse(item['id'].toString()),
-        "quantity": item['qty'],
-        "subtotal": item['harga'] * item['qty'],
-        "toppings": item['topping_ids'] ?? [] 
+      final payload = event.items.map((item) {
+        final menuId = item['id']?.toString();
+
+        if (menuId == null) {
+          throw Exception("menu_id tidak valid atau null");
+        }
+
+        return {
+          "menu_id": menuId,
+          "quantity": item['qty'] ?? 0,
+          "subtotal": (item['harga'] ?? 0) * (item['qty'] ?? 0),
+          "toppings": item['topping_ids'] ?? []
+        };
       }).toList();
 
       final response = await Supabase.instance.client.rpc('create_order_transaction', params: {
@@ -73,11 +81,11 @@ class OrderBloc extends Bloc<OrderEvent, OrderState> {
     // TIDAK menggunakan emit(OrderLoading()) agar stream di _onWatchOrder tetap aktif
     try {
       await _orderRepository.updateOrderStatus(
-        orderNumber: event.orderId,
+        orderId:  event.orderId,
         status: event.status,
       );
+      emit(OrderStatusUpdateSuccess());
     } catch (e) {
-      // Emit error ke listener jika gagal, tapi jangan matikan stream
       emit(OrderFailure('Gagal update status: $e'));
     }
   }
@@ -85,8 +93,8 @@ class OrderBloc extends Bloc<OrderEvent, OrderState> {
   Future<void> _onLoadUserOrderHistory(LoadUserOrderHistoryEvent event, Emitter<OrderState> emit) async {
     emit(OrderLoading());
     try {
-      final orders = await _orderRepository.getUserOrderHistory();
-      emit(OrderHistoryLoadSuccess(orders));
+      final order = await _orderRepository.getUserOrderHistory();
+      emit(OrderHistoryLoadSuccess(order));
     } catch (e) {
       emit(OrderFailure(e.toString()));
     }
@@ -95,8 +103,8 @@ class OrderBloc extends Bloc<OrderEvent, OrderState> {
   Future<void> _onLoadAdminOrderHistory(LoadAdminOrderHistoryEvent event, Emitter<OrderState> emit) async {
     emit(OrderLoading());
     try {
-      final orders = await _orderRepository.getAllUserOrderHistoryForAdmin();
-      emit(OrderHistoryLoadSuccess(orders));
+      final order = await _orderRepository.getAllUserOrderHistoryForAdmin();
+      emit(OrderHistoryLoadSuccess(order));
     } catch (e) {
       emit(OrderFailure(e.toString()));
     }
