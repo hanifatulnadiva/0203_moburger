@@ -6,7 +6,9 @@ import 'package:moburger/bloc/topping/topping_state.dart';
 import 'package:moburger/core/contants/colors.dart';
 import 'package:moburger/core/widget/custom_search.dart';
 import 'package:moburger/core/widget/custom_alert_dialog.dart';
+import 'package:moburger/core/widget/custom_status_card.dart';
 import 'package:moburger/core/widget/empty_state_widget.dart';
+import 'package:moburger/core/widget/kategori_filter.dart';
 import 'package:moburger/data/models/topping_model.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -129,14 +131,11 @@ class _ToppingPageState extends State<ToppingPage> {
           if (state is ToppingLoading) {
             return const Center(child: CircularProgressIndicator(color: AppColors.orange));
           }
-
           List<ToppingModel> currentToppings = [];
           if (state is ToppingSuccess) {
             currentToppings = state.topping;
           }
-
           final filteredList = _getFilteredToppings(currentToppings);
-
           return RefreshIndicator(
             onRefresh: () async {
               context.read<ToppingBloc>().add(FetchTopping());
@@ -162,43 +161,10 @@ class _ToppingPageState extends State<ToppingPage> {
                 ),
                 const SizedBox(height: 12),
 
-                SizedBox(
-                  height: 40,
-                  child: ListView.builder(
-                    scrollDirection: Axis.horizontal,
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    itemCount: _categories.length,
-                    itemBuilder: (context, index) {
-                      final category = _categories[index];
-                      final isSelected = _selectedCategory == category;
-                      return Padding(
-                        padding: const EdgeInsets.only(right: 10),
-                        child: ChoiceChip(
-                          label: Text(category),
-                          selected: isSelected,
-                          showCheckmark: false,
-                          onSelected: (selected) {
-                            if (selected) {
-                              setState(() => _selectedCategory = category);
-                            }
-                          },
-                          selectedColor: AppColors.orange,
-                          backgroundColor: AppColors.white,
-                          labelStyle: TextStyle(
-                            color: isSelected ? AppColors.white : AppColors.textSecondary,
-                            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(20),
-                            side: BorderSide(
-                              color: isSelected ? AppColors.orange : AppColors.textSecondary.withOpacity(0.2),
-                              width: 1,
-                            ),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
+                KategoriFilter(
+                  categories: _categories,
+                  selectedCategory: _selectedCategory,
+                  onSelected: (category) => setState(() => _selectedCategory = category),
                 ),
                 const SizedBox(height: 12),
 
@@ -219,7 +185,6 @@ class _ToppingPageState extends State<ToppingPage> {
       floatingActionButton: Padding(
         padding: const EdgeInsets.only(bottom: 90.0),
         child: FloatingActionButton(
-          // Tambahkan heroTag agar unik dan tidak bentrok dengan halaman lain
           heroTag: 'fab_topping_add', 
           onPressed: () => _showFormDialog(context),
           backgroundColor: AppColors.orange,
@@ -231,76 +196,36 @@ class _ToppingPageState extends State<ToppingPage> {
   }
 
   Widget _buildAdminDashboard(List<ToppingModel> toppingList) {
-    int countByCategory(String category) {
-      if (category == 'Semua') return toppingList.length;
-      return toppingList.where((t) => t.kategori?.toLowerCase() == category.toLowerCase()).length;
-    }
-
-    int countAvailable() => toppingList.where((t) => t.tersedia == true).length;
+    int total = toppingList.length;
+    int active = toppingList.where((t) => t.tersedia == true).length;
+    int level = toppingList.where((t) => t.kategori == 'level').length;
+    int topping = toppingList.where((t) => t.kategori == 'topping').length;
+    int drink = toppingList.where((t) => t.kategori == 'drink').length;
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Row(
-          children: [
-            _buildStatCard('Total Topping', countByCategory('Semua'), Icons.layers_rounded, AppColors.orange),
-            const SizedBox(width: 12),
-            _buildStatCard('Aktif/Tersedia', countAvailable(), Icons.check_circle_outline_rounded, AppColors.success),
-            const SizedBox(width: 12),
-            _buildStatCard('Varian Topping', countByCategory('topping'), Icons.celebration, AppColors.yellow),
-            const SizedBox(width: 12),
-            _buildStatCard('Level Pedas', countByCategory('level'), Icons.local_fire_department_rounded, AppColors.error),
-            const SizedBox(width: 12),
-            _buildStatCard('Drink Topping', countByCategory('drink'), Icons.water_drop_rounded, AppColors.info),
-          ],
-        ),
+      padding: const EdgeInsets.all(16),
+      child: Wrap(
+        spacing: 12,
+        runSpacing: 12,
+        children: [
+          _buildStatItem('Total', '$total', Icons.layers_rounded, AppColors.orange),
+          _buildStatItem('Aktif', '$active', Icons.check_circle_outline_rounded, AppColors.success),
+          _buildStatItem('Level', '$level', Icons.local_fire_department_rounded, AppColors.error),
+          _buildStatItem('Topping', '$topping', Icons.celebration, AppColors.yellow),
+          _buildStatItem('Drink', '$drink', Icons.water_drop_rounded, AppColors.info),
+        ],
       ),
     );
   }
 
-  Widget _buildStatCard(String title, int count, IconData icon, Color color) {
-    return Container(
-      width: 125,
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.15), width: 1),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.darkRed.withOpacity(0.04), 
-            blurRadius: 6, 
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(4),
-            decoration: BoxDecoration(color: color.withOpacity(0.1), shape: BoxShape.circle),
-            child: Icon(icon, color: color, size: 20),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  title, 
-                  style: const TextStyle(fontSize: 10, color: AppColors.textSecondary, fontWeight: FontWeight.w500), 
-                  overflow: TextOverflow.ellipsis,
-                ),
-                Text(
-                  '$count', 
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
-                ),
-              ],
-            ),
-          ),
-        ],
+  Widget _buildStatItem(String label, String value, IconData icon, Color color) {
+    return FractionallySizedBox(
+      widthFactor: 0.305, // Menjamin 3 kartu per baris
+      child:      OptionCard(
+        label: label,
+        value: value,
+        icon: icon,
+        color: color,
       ),
     );
   }

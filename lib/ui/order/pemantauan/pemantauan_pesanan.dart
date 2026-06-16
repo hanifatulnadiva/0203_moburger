@@ -37,10 +37,6 @@ class _OrderTrackingPageState extends State<OrderTrackingPage> {
 
             return Column(
               children: [
-                // Bagian Carousel (Anda bisa bungkus ini dengan PageView nanti)
-                //_buildOrderHeader(state.orderData),
-                
-                // Bagian Timeline
                 Expanded(
                   child: ListView(
                     padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),

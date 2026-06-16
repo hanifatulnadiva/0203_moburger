@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:moburger/data/repositories/order_repository.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'order_event.dart';
 import 'order_state.dart';
 
@@ -16,48 +15,35 @@ class OrderBloc extends Bloc<OrderEvent, OrderState> {
     on<UpdateOrderStatusEvent>(_onUpdateOrderStatus);
     on<LoadUserOrderHistoryEvent>(_onLoadUserOrderHistory);
     on<LoadAdminOrderHistoryEvent>(_onLoadAdminOrderHistory);
+    on<LoadOrderDetailEvent>(_onLoadOrderDetail);
   }
 
   Future<void> _onCreateOrder(CreateOrderEvent event, Emitter<OrderState> emit) async {
     emit(OrderLoading());
     try {
-      final payload = event.items.map((item) {
-        final menuId = item['id']?.toString();
-
-        if (menuId == null) {
-          throw Exception("menu_id tidak valid atau null");
-        }
-
-        return {
-          "menu_id": menuId,
-          "quantity": item['qty'] ?? 0,
-          "subtotal": (item['harga'] ?? 0) * (item['qty'] ?? 0),
-          "toppings": item['topping_ids'] ?? []
-        };
-      }).toList();
-
-      final response = await Supabase.instance.client.rpc('create_order_transaction', params: {
-        'p_user_id': Supabase.instance.client.auth.currentUser!.id,
-        'p_total_price': event.totalPrice,
-        'p_nama_customer': event.namaCustomer,
-        'p_order_type': 'online',
-        'p_items': payload
-      });
-
-      if (response != null) {
-        emit(OrderCreateSuccess(orderId: response.toString()));
-      } else {
-        emit(OrderFailure('Gagal membuat pesanan: Response kosong.'));
+      final userId = _orderRepository.currentUserId;
+      if (userId == null) {
+        emit(OrderFailure('Sesi login tidak ditemukan.'));
+        return;
       }
+
+      final orderNumber = await _orderRepository.createOrderTransaction(
+        userId: userId,
+        totalPrice: event.totalPrice,
+        namaCustomer: event.namaCustomer,
+        orderType: event.orderType,
+        items: event.items,
+      );
+
+      emit(OrderCreateSuccess(orderId: orderNumber));
     } catch (e) {
       emit(OrderFailure('Gagal membuat pesanan: $e'));
     }
   }
 
   Future<void> _onWatchOrder(WatchOrderEvent event, Emitter<OrderState> emit) async {
-    // Gunakan OrderLoading hanya saat pertama kali membuka stream
     emit(OrderLoading());
-    
+
     try {
       await emit.forEach(
         _orderRepository.streamOrderById(event.orderId),
@@ -65,7 +51,6 @@ class OrderBloc extends Bloc<OrderEvent, OrderState> {
           if (orderData == null) {
             return OrderFailure('Data pesanan tidak ditemukan.');
           }
-          // Setiap ada update di database, state ini akan ter-update otomatis
           return OrderWatchSuccess(orderData);
         },
         onError: (error, stackTrace) {
@@ -78,10 +63,9 @@ class OrderBloc extends Bloc<OrderEvent, OrderState> {
   }
 
   Future<void> _onUpdateOrderStatus(UpdateOrderStatusEvent event, Emitter<OrderState> emit) async {
-    // TIDAK menggunakan emit(OrderLoading()) agar stream di _onWatchOrder tetap aktif
     try {
       await _orderRepository.updateOrderStatus(
-        orderId:  event.orderId,
+        orderId: event.orderId,
         status: event.status,
       );
       emit(OrderStatusUpdateSuccess());
@@ -107,6 +91,16 @@ class OrderBloc extends Bloc<OrderEvent, OrderState> {
       emit(OrderHistoryLoadSuccess(order));
     } catch (e) {
       emit(OrderFailure(e.toString()));
+    }
+  }
+
+  Future<void> _onLoadOrderDetail(LoadOrderDetailEvent event, Emitter<OrderState> emit) async {
+    emit(OrderLoading());
+    try {
+      final items = await _orderRepository.getOrderDetail(event.orderId);
+      emit(OrderDetailLoadSuccess(items: items));
+    } catch (e) {
+      emit(OrderFailure('Gagal mengambil detail pesanan: $e'));
     }
   }
 }

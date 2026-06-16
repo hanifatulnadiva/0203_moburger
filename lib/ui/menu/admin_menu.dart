@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:moburger/bloc/menu/menu_bloc.dart';
+import 'package:moburger/bloc/menu/menu_event.dart';
+import 'package:moburger/bloc/menu/menu_state.dart';
 import 'package:moburger/core/contants/colors.dart';
 import 'package:moburger/core/contants/text.dart';
 import 'package:moburger/core/widget/custom_search.dart';
 import 'package:moburger/core/widget/custom_alert_dialog.dart';
+import 'package:moburger/core/widget/custom_status_card.dart';
 import 'package:moburger/core/widget/empty_state_widget.dart';
+import 'package:moburger/core/widget/kategori_filter.dart';
 import 'package:moburger/core/widget/loading_widget.dart';
 import 'package:moburger/data/models/menu_model.dart';
 import 'package:moburger/ui/menu/form_menu.dart';
@@ -43,19 +47,13 @@ class _AdminMenuScreenState extends State<AdminMenuScreen> {
   }
 
   void _toggleAvailability(String id, bool currentValue) async {
-    // 1. Optimistic Update (Local UI)
-    // Anda tidak perlu setState manual jika sudah memakai BlocConsumer yang benar
-    
-    // 2. Kirim event ke Bloc untuk update lokal + update ke Supabase
     context.read<MenuBloc>().add(UpdateMenuStatus(id, !currentValue));
-    
     try {
       await _supabase
           .from('menu')
           .update({'tersedia': !currentValue})
           .eq('id', id);
     } catch (e) {
-      // Jika gagal, rollback ke status sebelumnya
       context.read<MenuBloc>().add(UpdateMenuStatus(id, currentValue));
       _showSnackBar('Gagal mengubah status: $e', isError: true);
     }
@@ -94,6 +92,43 @@ class _AdminMenuScreenState extends State<AdminMenuScreen> {
           (menu.kategori?.toLowerCase() == _selectedCategory.toLowerCase());
       return matchSearch && matchCategory;
     }).toList();
+  }
+
+  Widget _buildAdminDashboard(List<MenuModel> menuList) {
+    int total = menuList.length;
+    int available = menuList.where((m) => m.tersedia == true).length;
+    int habis = menuList.where((m) => m.tersedia == false).length;
+    int makanan = menuList.where((m) => m.kategori?.toLowerCase() == 'makanan').length;
+    int minuman = menuList.where((m) => m.kategori?.toLowerCase() == 'minuman').length;
+    int snack= menuList.where((m) => m.kategori?.toLowerCase() == 'snack').length;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+      child: Wrap(
+        spacing: 12,
+        runSpacing: 12,
+        children: [
+          _buildStatItem('Total', '$total', Icons.restaurant_menu, AppColors.orange),
+          _buildStatItem('Tersedia', '$available', Icons.check_circle_outline_rounded, AppColors.success),
+          _buildStatItem('Hanis', '$habis', Icons.check_circle_outline_rounded, AppColors.darkRed),
+          _buildStatItem('Makanan', '$makanan', Icons.lunch_dining_rounded, AppColors.yellow),
+          _buildStatItem('Minuman', '$minuman', Icons.local_drink_rounded, AppColors.info),
+          _buildStatItem('Snack', '$snack', Icons.cookie, AppColors.warning),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatItem(String label, String value, IconData icon, Color color) {
+    return FractionallySizedBox(
+      widthFactor: 0.305, // Membuat 3 kartu per baris
+      child: OptionCard(
+        label: label,
+        value: value,
+        icon: icon,
+        color: color,
+      ),
+    );
   }
 
   @override
@@ -137,7 +172,15 @@ class _AdminMenuScreenState extends State<AdminMenuScreen> {
                   ),
                 ),
                 const SizedBox(height: 12),
-                _buildCategoryChips(),
+                KategoriFilter(
+                  categories: _categories,
+                  selectedCategory: _selectedCategory,
+                  onSelected: (category) {
+                    setState(() {
+                      _selectedCategory = category;
+                    });
+                  },
+                ),
                 const SizedBox(height: 12),
                 Expanded(
                   child: filteredList.isEmpty
@@ -163,72 +206,6 @@ class _AdminMenuScreenState extends State<AdminMenuScreen> {
     );
   }
 
-  Widget _buildCategoryChips() {
-    return SizedBox(
-      height: 40,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        itemCount: _categories.length,
-        itemBuilder: (context, index) {
-          final category = _categories[index];
-          final isSelected = _selectedCategory == category;
-          return Padding(
-            padding: const EdgeInsets.only(right: 10),
-            child: ChoiceChip(
-              label: Text(category), selected: isSelected, showCheckmark: false,
-              onSelected: (selected) { if (selected) setState(() => _selectedCategory = category); },
-              selectedColor: AppColors.orange, backgroundColor: AppColors.white,
-              labelStyle: TextStyle(color: isSelected ? AppColors.white : AppColors.textSecondary, fontWeight: isSelected ? FontWeight.bold : FontWeight.normal),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20), side: BorderSide(color: isSelected ? AppColors.orange : AppColors.textSecondary.withOpacity(0.2))),
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildAdminDashboard(List<MenuModel> menuList) {
-    int countByCategory(String category) => category == 'Semua' ? menuList.length : menuList.where((m) => m.kategori?.toLowerCase() == category.toLowerCase()).length;
-    int countAvailable() => menuList.where((m) => m.tersedia == true).length;
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Row(
-          children: [
-            _buildStatCard('Total Menu', countByCategory('Semua'), Icons.restaurant_menu, AppColors.orange),
-            const SizedBox(width: 12),
-            _buildStatCard('Tersedia', countAvailable(), Icons.check_circle_outline_rounded, AppColors.success),
-            const SizedBox(width: 12),
-            _buildStatCard('Makanan', countByCategory('makanan'), Icons.lunch_dining_rounded, AppColors.yellow),
-            const SizedBox(width: 12),
-            _buildStatCard('Minuman', countByCategory('minuman'), Icons.local_drink_rounded, AppColors.info),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildStatCard(String title, int count, IconData icon, Color color) {
-    return Container(
-      width: 120, padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(color: AppColors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: color.withOpacity(0.15))),
-      child: Row(
-        children: [
-          Container(padding: const EdgeInsets.all(4), decoration: BoxDecoration(color: color.withOpacity(0.1), shape: BoxShape.circle), child: Icon(icon, color: color, size: 20)),
-          const SizedBox(width: 8),
-          Expanded(child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min, 
-            children: [Text(title, style: const TextStyle(fontSize: 10, color: AppColors.textSecondary),
-              overflow: TextOverflow.ellipsis), Text('$count', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold))]))
-        ],
-      ),
-    );
-  }
-
   Widget _buildAdminListView(List<MenuModel> filteredMenus) {
     return ListView.builder(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 100),
@@ -236,7 +213,6 @@ class _AdminMenuScreenState extends State<AdminMenuScreen> {
       itemBuilder: (context, index) {
         final item = filteredMenus[index];
         final bool isAvailable = item.tersedia;
-
         return Card(
           margin: const EdgeInsets.only(bottom: 12), color: AppColors.white, elevation: 0,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: AppColors.darkRed.withOpacity(0.05))),
@@ -265,10 +241,6 @@ class _AdminMenuScreenState extends State<AdminMenuScreen> {
                   value: isAvailable,
                   activeTrackColor: AppColors.success.withOpacity(0.5),
                   activeColor: AppColors.success,
-                  inactiveTrackColor: AppColors.textSecondary.withOpacity(0.2),
-                  inactiveThumbColor: AppColors.textSecondary.withOpacity(0.5),
-                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  // [Fix]: Oper id asli tanpa string casting paksa agar tipe data di database match
                   onChanged: (val) => _toggleAvailability(item.id.toString(), isAvailable),
                 ),
                 PopupMenuButton<String>(

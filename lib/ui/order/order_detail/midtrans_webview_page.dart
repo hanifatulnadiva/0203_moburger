@@ -55,7 +55,7 @@ class _MidtransWebViewPageState extends State<MidtransWebViewPage> {
             Navigator.pushAndRemoveUntil(
               context,
               MaterialPageRoute(
-                builder: (_) => const SuccessScreen(),
+                builder: (_) => SuccessScreen(orderId: widget.orderNumber),
               ),
               (route) => false,
             );

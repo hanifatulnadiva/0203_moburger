@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:moburger/bloc/menu/menu_bloc.dart';
-import 'package:moburger/bloc/cart/cart_bloc.dart'; 
-import 'package:moburger/bloc/cart/cart_event.dart'; 
-import 'package:moburger/bloc/cart/cart_state.dart'; 
+import 'package:moburger/bloc/cart/cart_bloc.dart';
+import 'package:moburger/bloc/cart/cart_event.dart';
+import 'package:moburger/bloc/cart/cart_state.dart';
+import 'package:moburger/bloc/menu/menu_event.dart';
+import 'package:moburger/bloc/menu/menu_state.dart';
 import 'package:moburger/bloc/topping/topping_bloc.dart';
 import 'package:moburger/bloc/topping/topping_event.dart';
 import 'package:moburger/bloc/topping/topping_state.dart';
@@ -12,10 +14,11 @@ import 'package:moburger/core/contants/text.dart';
 import 'package:moburger/core/widget/custom_card_menu.dart';
 import 'package:moburger/core/widget/custom_search.dart';
 import 'package:moburger/core/widget/empty_state_widget.dart';
+import 'package:moburger/core/widget/kategori_filter.dart';
 import 'package:moburger/core/widget/loading_widget.dart';
 import 'package:moburger/data/models/menu_model.dart';
 import 'package:moburger/ui/menu/detail_menu.dart';
-import 'package:moburger/ui/order/order_detail/cart_page.dart'; 
+import 'package:moburger/ui/order/order_detail/cart_page.dart';
 
 class CustomerMenuScreen extends StatefulWidget {
   const CustomerMenuScreen({super.key});
@@ -61,13 +64,13 @@ class _CustomerMenuScreenState extends State<CustomerMenuScreen> {
   bool _hasLevelTopping(BuildContext context) {
     final toppingState = context.read<ToppingBloc>().state;
     if (toppingState is ToppingSuccess) {
-      return toppingState.topping
-          .any((t) => (t.kategori ?? '').toLowerCase() == 'level');
+      return toppingState.topping.any(
+        (t) => (t.kategori ?? '').toLowerCase() == 'level',
+      );
     }
     return true;
   }
 
-  // Navigasi Standar Mode Tambah Baru (Kondisi Kosong/Default)
   void _navigateToDetail(BuildContext context, MenuModel item) {
     Navigator.push(
       context,
@@ -75,15 +78,16 @@ class _CustomerMenuScreenState extends State<CustomerMenuScreen> {
     ).then((_) => setState(() {}));
   }
 
-  // Navigasi Khusus Mode Edit (Membawa Payload Item Lama ke DetailMenuScreen)
-  void _navigateToEditDetail(BuildContext context, MenuModel item, Map<String, dynamic> cartItem) {
+  void _navigateToEditDetail(
+    BuildContext context,
+    MenuModel item,
+    Map<String, dynamic> cartItem,
+  ) {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => DetailMenuScreen(
-          menu: item,
-          itemKustomisasiLama: cartItem, 
-        ),
+        builder: (_) =>
+            DetailMenuScreen(menu: item, itemKustomisasiLama: cartItem),
       ),
     ).then((_) => setState(() {}));
   }
@@ -98,23 +102,30 @@ class _CustomerMenuScreenState extends State<CustomerMenuScreen> {
 
     context.read<CartBloc>().add(
       AddToCart({
-        'cart_item_id': uniqueCartItemId,
+        'order_item_id': uniqueCartItemId,
         'id': menuId,
         'nama': item.nama_menu ?? 'Menu',
         'harga': menuHarga,
         'qty': 1,
         'level': '',
         'toppings': [],
-        'catatan': '',
+        'notes': '',
       }),
     );
   }
 
-  List<Map<String, dynamic>> _getCartItemsByMenuId(List<Map<String, dynamic>> cartItems, String menuId) {
+  List<Map<String, dynamic>> _getCartItemsByMenuId(
+    List<Map<String, dynamic>> cartItems,
+    String menuId,
+  ) {
     return cartItems.where((item) => item['id'].toString() == menuId).toList();
   }
 
-  void _showVariasiBottomSheet(BuildContext context, MenuModel item, List<Map<String, dynamic>> menuCartItems) {
+  void _showVariasiBottomSheet(
+    BuildContext context,
+    MenuModel item,
+    List<Map<String, dynamic>> menuCartItems,
+  ) {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.white,
@@ -128,12 +139,16 @@ class _CustomerMenuScreenState extends State<CustomerMenuScreen> {
               builder: (context, cartState) {
                 List<Map<String, dynamic>> currentCart = [];
                 if (cartState is CartLoaded) currentCart = cartState.cartItems;
-                
-                final activeItems = _getCartItemsByMenuId(currentCart, item.id.toString());
 
-                // Jika seluruh variasi habis dikurangi (kosong), tutup modal otomatis
+                final activeItems = _getCartItemsByMenuId(
+                  currentCart,
+                  item.id.toString(),
+                );
+
                 if (activeItems.isEmpty) {
-                  WidgetsBinding.instance.addPostFrameCallback((_) => Navigator.pop(context));
+                  WidgetsBinding.instance.addPostFrameCallback(
+                    (_) => Navigator.pop(context),
+                  );
                   return const SizedBox.shrink();
                 }
 
@@ -147,29 +162,43 @@ class _CustomerMenuScreenState extends State<CustomerMenuScreen> {
                         child: Container(
                           width: 40,
                           height: 4,
-                          decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2)),
+                          decoration: BoxDecoration(
+                            color: Colors.grey[300],
+                            borderRadius: BorderRadius.circular(2),
+                          ),
                         ),
                       ),
                       const SizedBox(height: 16),
                       Text(
                         (item.nama_menu ?? '').toUpperCase(),
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.textPrimary),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          color: AppColors.textPrimary,
+                        ),
                       ),
                       const SizedBox(height: 10),
                       const Divider(thickness: 1, color: Color(0xFFF0F0F0)),
-                      
-                      // List variasi kustom yang ada di keranjang saat ini
+
                       ConstrainedBox(
-                        constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.3),
+                        constraints: BoxConstraints(
+                          maxHeight: MediaQuery.of(context).size.height * 0.3,
+                        ),
                         child: ListView.builder(
                           shrinkWrap: true,
                           itemCount: activeItems.length,
                           itemBuilder: (context, index) {
                             final cartItem = activeItems[index];
-                            final String cItemId = cartItem['cart_item_id'].toString();
-                            
-                            String labelVariasi = cartItem['catatan'].toString().split('|').first.trim();
-                            if (labelVariasi.isEmpty) labelVariasi = "Varian Standar";
+                            final String cItemId = cartItem['order_item_id']
+                                .toString();
+
+                            String labelVariasi = cartItem['catatan']
+                                .toString()
+                                .split('|')
+                                .first
+                                .trim();
+                            if (labelVariasi.isEmpty)
+                              labelVariasi = "Varian Standar";
 
                             return Padding(
                               padding: const EdgeInsets.symmetric(vertical: 10),
@@ -177,35 +206,65 @@ class _CustomerMenuScreenState extends State<CustomerMenuScreen> {
                                 children: [
                                   Expanded(
                                     child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
                                         Text(
                                           labelVariasi,
-                                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: AppColors.textSecondary),
+                                          style: const TextStyle(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w500,
+                                            color: AppColors.textSecondary,
+                                          ),
                                           maxLines: 2,
                                           overflow: TextOverflow.ellipsis,
                                         ),
                                         const SizedBox(height: 4),
                                         Text(
                                           'Rp ${_formatPrice(cartItem['harga'])}',
-                                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.textPrimary),
+                                          style: const TextStyle(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.bold,
+                                            color: AppColors.textPrimary,
+                                          ),
                                         ),
                                       ],
                                     ),
                                   ),
-                                  
+
                                   OutlinedButton.icon(
                                     onPressed: () {
-                                      Navigator.pop(context); 
-                                      _navigateToEditDetail(context, item, cartItem); 
+                                      Navigator.pop(context);
+                                      _navigateToEditDetail(
+                                        context,
+                                        item,
+                                        cartItem,
+                                      );
                                     },
-                                    icon: const Icon(Icons.edit_outlined, size: 14, color: AppColors.textPrimary),
-                                    label: const Text('Edit', style: TextStyle(fontSize: 12, color: AppColors.textPrimary)),
+                                    icon: const Icon(
+                                      Icons.edit_outlined,
+                                      size: 14,
+                                      color: AppColors.textPrimary,
+                                    ),
+                                    label: const Text(
+                                      'Edit',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: AppColors.textPrimary,
+                                      ),
+                                    ),
                                     style: OutlinedButton.styleFrom(
-                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 10,
+                                        vertical: 2,
+                                      ),
                                       visualDensity: VisualDensity.compact,
-                                      side: BorderSide(color: Colors.grey[300]!),
-                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                                      side: BorderSide(
+                                        color: Colors.grey[300]!,
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(20),
+                                      ),
                                     ),
                                   ),
                                   const SizedBox(width: 12),
@@ -213,16 +272,36 @@ class _CustomerMenuScreenState extends State<CustomerMenuScreen> {
                                   Row(
                                     children: [
                                       GestureDetector(
-                                        onTap: () => context.read<CartBloc>().add(DecrementCartItem(cItemId)),
-                                        child: const Icon(Icons.remove_circle_outline, color: AppColors.orange, size: 22),
+                                        onTap: () => context
+                                            .read<CartBloc>()
+                                            .add(DecrementCartItem(cItemId)),
+                                        child: const Icon(
+                                          Icons.remove_circle_outline,
+                                          color: AppColors.orange,
+                                          size: 22,
+                                        ),
                                       ),
                                       Padding(
-                                        padding: const EdgeInsets.symmetric(horizontal: 8),
-                                        child: Text('${cartItem['qty']}', style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                        ),
+                                        child: Text(
+                                          '${cartItem['qty']}',
+                                          style: const TextStyle(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
                                       ),
                                       GestureDetector(
-                                        onTap: () => context.read<CartBloc>().add(IncrementCartItem(cItemId)),
-                                        child: const Icon(Icons.add_circle, color: AppColors.orange, size: 22),
+                                        onTap: () => context
+                                            .read<CartBloc>()
+                                            .add(IncrementCartItem(cItemId)),
+                                        child: const Icon(
+                                          Icons.add_circle,
+                                          color: AppColors.orange,
+                                          size: 22,
+                                        ),
                                       ),
                                     ],
                                   ),
@@ -232,7 +311,7 @@ class _CustomerMenuScreenState extends State<CustomerMenuScreen> {
                           },
                         ),
                       ),
-                      
+
                       const SizedBox(height: 12),
                       const Divider(thickness: 1, color: Color(0xFFF0F0F0)),
                       const SizedBox(height: 12),
@@ -247,12 +326,18 @@ class _CustomerMenuScreenState extends State<CustomerMenuScreen> {
                           },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.green[600],
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(25),
+                            ),
                             elevation: 0,
                           ),
                           child: const Text(
                             'Tambah custom-an lain',
-                            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
                           ),
                         ),
                       ),
@@ -274,7 +359,10 @@ class _CustomerMenuScreenState extends State<CustomerMenuScreen> {
       appBar: AppBar(
         backgroundColor: AppColors.background,
         elevation: 0,
-        title: const Text('Mau makan apa hari ini?', style: AppTextStyles.judul),
+        title: const Text(
+          'Mau makan apa hari ini?',
+          style: AppTextStyles.judul,
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh_rounded, color: AppColors.orange),
@@ -287,7 +375,6 @@ class _CustomerMenuScreenState extends State<CustomerMenuScreen> {
           if (menuState is MenuLoading) {
             return const AppLoadingWidget(message: 'Memuat data menu...');
           }
-
           List<MenuModel> currentMenu = [];
           if (menuState is MenuSuccess) currentMenu = menuState.menu;
           final filteredList = _getFilteredMenus(currentMenu);
@@ -302,7 +389,8 @@ class _CustomerMenuScreenState extends State<CustomerMenuScreen> {
               return Stack(
                 children: [
                   RefreshIndicator(
-                    onRefresh: () async => context.read<MenuBloc>().add(FetchMenu()),
+                    onRefresh: () async =>
+                        context.read<MenuBloc>().add(FetchMenu()),
                     color: AppColors.orange,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -321,16 +409,28 @@ class _CustomerMenuScreenState extends State<CustomerMenuScreen> {
                           ),
                         ),
                         const SizedBox(height: 12),
-                        _buildCategoryChips(),
+                        KategoriFilter(
+                          categories: _categories,
+                          selectedCategory: _selectedCategory,
+                          onSelected: (category) {
+                            setState(() {
+                              _selectedCategory = category;
+                            });
+                          },
+                        ),
                         const SizedBox(height: 12),
                         Expanded(
                           child: filteredList.isEmpty
                               ? const EmptyStateWidget(
                                   icon: Icons.fastfood_rounded,
                                   title: 'Menu Tidak Ditemukan',
-                                  description: 'Yah, menu tidak ada. Coba cari yang lain ya!',
+                                  description:
+                                      'Yah, menu tidak ada. Coba cari yang lain ya!',
                                 )
-                              : _buildUserGridView(filteredList, globalCartItems),
+                              : _buildUserGridView(
+                                  filteredList,
+                                  globalCartItems,
+                                ),
                         ),
                       ],
                     ),
@@ -344,45 +444,10 @@ class _CustomerMenuScreenState extends State<CustomerMenuScreen> {
     );
   }
 
-  Widget _buildCategoryChips() {
-    return SizedBox(
-      height: 40,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        itemCount: _categories.length,
-        itemBuilder: (context, index) {
-          final category = _categories[index];
-          final isSelected = _selectedCategory == category;
-          return Padding(
-            padding: const EdgeInsets.only(right: 10),
-            child: ChoiceChip(
-              label: Text(category),
-              selected: isSelected,
-              showCheckmark: false,
-              onSelected: (selected) {
-                if (selected) setState(() => _selectedCategory = category);
-              },
-              selectedColor: AppColors.orange,
-              backgroundColor: AppColors.white,
-              labelStyle: TextStyle(
-                color: isSelected ? AppColors.white : AppColors.textSecondary,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-              ),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
-                side: BorderSide(
-                  color: isSelected ? AppColors.orange : AppColors.textSecondary.withOpacity(0.2),
-                ),
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildUserGridView(List<MenuModel> filteredMenus, List<Map<String, dynamic>> cartItems) {
+  Widget _buildUserGridView(
+    List<MenuModel> filteredMenus,
+    List<Map<String, dynamic>> cartItems,
+  ) {
     return GridView.builder(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 100),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -398,15 +463,20 @@ class _CustomerMenuScreenState extends State<CustomerMenuScreen> {
         final bool isAvailable = item.tersedia ?? true;
         final String menuKategori = (item.kategori ?? '').toLowerCase();
 
-        final List<Map<String, dynamic>> menuCartItems = _getCartItemsByMenuId(cartItems, menuId);
-        final int currentQty = menuCartItems.fold(0, (sum, e) => sum + (e['qty'] as int));
+        final List<Map<String, dynamic>> menuCartItems = _getCartItemsByMenuId(
+          cartItems,
+          menuId,
+        );
+        final int currentQty = menuCartItems.fold(
+          0,
+          (sum, e) => sum + (e['qty'] as int),
+        );
 
         return MenuCard(
           item: item,
           menuId: menuId,
           isAvailable: isAvailable,
           currentQty: currentQty,
-          // FIX UTAMA: Ketika gambar atau area luar kartu diklik, SELALU arahkan langsung ke halaman DetailMenu standar
           onTapCard: () => _navigateToDetail(context, item),
           onTapAction: () {
             if (currentQty > 0) {

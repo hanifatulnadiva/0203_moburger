@@ -24,8 +24,6 @@ class ReportModel {
       totalRevenue: (json['total_revenue'] ?? 0).toDouble(),
       totalTransactions: json['total_transactions'] ?? 0,
       averageOrderValue: (json['avg_order_value'] ?? 0).toDouble(),
-      
-      // Menggunakan operator '?' dan '?? []' agar aplikasi tahan banting (anti-crash)
       revenueTrend: (json['revenue_trend'] as List?)
           ?.map((i) => RevenueData.fromJson(i))
           .toList() ?? [],

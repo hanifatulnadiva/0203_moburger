@@ -46,9 +46,8 @@ class _DetailMenuScreenState extends State<DetailMenuScreen> {
       _quantity = dataLama['qty'] ?? 1;
       _selectedLevel = dataLama['level'] ?? '';
 
-      final String catatanLama = dataLama['catatan']?.toString() ?? '';
-      if (catatanLama.contains('| Note:')) {
-        _catatanController.text = catatanLama.split('| Note:').last.trim();
+      final String catatanLama = dataLama['notes']?.toString() ?? '';
+      if (catatanLama.contains('| Note:')) {_catatanController.text = catatanLama.split('| Note:').last.trim();
       } else if (!catatanLama.contains('Variasi:') &&
           !catatanLama.contains('Topping:')) {
         _catatanController.text = catatanLama;
@@ -92,52 +91,38 @@ class _DetailMenuScreenState extends State<DetailMenuScreen> {
   void _simpanKeKeranjang(int hargaSatuanTotal) {
     // FIX BARU: Menghapus pengecekan null manual redundan yang menyebabkan dead code
     final String menuId = widget.menu.id.toString();
-
-    final List<String> toppingIds =
-        _selectedToppings.map((t) => t.id ?? '').toList()..sort();
-    final String toppingKey = toppingIds.isNotEmpty
-        ? toppingIds.join(',')
-        : 'empty';
-    final String levelKey = _selectedLevel.isNotEmpty
-        ? _selectedLevel.replaceAll(' ', '').toLowerCase()
-        : 'normal';
-
+    print("DEBUG DETAIL - Topping Terpilih: ${_selectedToppings.map((t) => t.id).toList()}");
+    final List<String> toppingIds =_selectedToppings.map((t) => t.id ?? '').toList();
+    final String toppingKey = toppingIds.isNotEmpty? toppingIds.join(','): 'empty';
+    final String levelKey = _selectedLevel.isNotEmpty? _selectedLevel.replaceAll(' ', '').toLowerCase(): 'normal';
     final String uniqueCartItemId = '${menuId}_${levelKey}_$toppingKey';
-    final List<String> toppingNames = _selectedToppings
-        .map((t) => t.nama_topping ?? '')
-        .toList();
+    final List<String> toppingNames = _selectedToppings.map((t) => t.nama_topping ?? '').toList();
 
-    String rincianVariasi = _selectedLevel.isNotEmpty
-        ? 'Variasi: $_selectedLevel'
-        : '';
+    String rincianVariasi = _selectedLevel.isNotEmpty? 'Variasi: $_selectedLevel': '';
     if (toppingNames.isNotEmpty) {
-      rincianVariasi += rincianVariasi.isNotEmpty
-          ? ', Topping: ${toppingNames.join(', ')}'
-          : 'Topping: ${toppingNames.join(', ')}';
+      rincianVariasi += rincianVariasi.isNotEmpty? ', Topping: ${toppingNames.join(', ')}': 'Topping: ${toppingNames.join(', ')}';
     }
 
     String catatanAkhir = rincianVariasi;
     if (_catatanController.text.trim().isNotEmpty) {
-      catatanAkhir += catatanAkhir.isNotEmpty
-          ? ' | Note: ${_catatanController.text.trim()}'
-          : _catatanController.text.trim();
+      catatanAkhir += catatanAkhir.isNotEmpty? ' | Note: ${_catatanController.text.trim()}': _catatanController.text.trim();
     }
 
     final Map<String, dynamic> dataPayload = {
-      'cart_item_id': uniqueCartItemId,
+      'order_item_id': uniqueCartItemId,
       'id': menuId,
       'nama': _capitalizeEachWord(widget.menu.nama_menu ?? 'Hamburger'),
       'harga': hargaSatuanTotal,
       'qty': _quantity,
       'level': _selectedLevel,
-      'toppings': toppingNames,
-      'catatan': catatanAkhir,
+      'toppings': toppingIds,
+      'notes': catatanAkhir,
     };
 
     if (widget.itemKustomisasiLama != null) {
       context.read<CartBloc>().add(
         UpdateCartItem(
-          oldCartItemId: widget.itemKustomisasiLama!['cart_item_id'].toString(),
+          oldCartItemId: widget.itemKustomisasiLama!['order_item_id'].toString(),
           newItem: dataPayload,
         ),
       );
@@ -153,7 +138,7 @@ class _DetailMenuScreenState extends State<DetailMenuScreen> {
               ? 'Variasi menu berhasil diperbarui!'
               : 'Sukses dimasukkan ke keranjang! (${_quantity}x)',
         ),
-        duration: const Duration(seconds: 2),
+        duration: const Duration(seconds: 1),
       ),
     );
 
@@ -214,27 +199,23 @@ class _DetailMenuScreenState extends State<DetailMenuScreen> {
                   fit: StackFit.expand,
                   children: [
                     imageUrl.isNotEmpty
-                        ? Image.network(
-                            imageUrl,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, error, stackTrace) =>
-                                const Center(
-                                  // FIX BARU: Hilangkan double underscore
-                                  child: Icon(
-                                    Icons.fastfood_rounded,
-                                    size: 80,
-                                    color: AppColors.orange,
-                                  ),
-                                ),
-                          )
-                        : Container(
-                            color: AppColors.darkRed,
-                            child: const Icon(
+                      ? Image.network(
+                        imageUrl,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, error, stackTrace) =>
+                          const Center(
+                            // FIX BARU: Hilangkan double underscore
+                            child: Icon(
                               Icons.fastfood_rounded,
-                              size: 100,
+                              size: 80,
                               color: AppColors.orange,
                             ),
                           ),
+                        )
+                      : Container(
+                          color: AppColors.darkRed,
+                          child: const Icon(Icons.fastfood_rounded,size: 100,color: AppColors.orange,),
+                        ),
                     Container(
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
@@ -271,12 +252,7 @@ class _DetailMenuScreenState extends State<DetailMenuScreen> {
                           top: Radius.circular(20),
                         ),
                       ),
-                      padding: const EdgeInsets.fromLTRB(
-                        24.0,
-                        28.0,
-                        24.0,
-                        24.0,
-                      ),
+                      padding: const EdgeInsets.fromLTRB(24.0,28,24,24),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -321,11 +297,7 @@ class _DetailMenuScreenState extends State<DetailMenuScreen> {
                           Text(
                             widget.menu.deskripsi ??
                                 'Tidak ada deskripsi untuk menu ini.',
-                            style: const TextStyle(
-                              fontSize: 14,
-                              color: AppColors.textSecondary,
-                              height: 1.5,
-                            ),
+                            style: AppTextStyles.bodyRegular
                           ),
                           BlocBuilder<ToppingBloc, ToppingState>(
                             builder: (context, state) {
@@ -343,43 +315,19 @@ class _DetailMenuScreenState extends State<DetailMenuScreen> {
                               if (state is ToppingSuccess) {
                                 final allToppings = state.topping;
                                 final levelToppings = allToppings
-                                    .where(
-                                      (t) =>
-                                          (t.kategori ?? '').toLowerCase() ==
-                                          'level',
-                                    )
-                                    .toList();
+                                    .where((t) =>(t.kategori ?? '').toLowerCase() =='level',).toList();
                                 final extraToppings = allToppings
-                                    .where(
-                                      (t) =>
-                                          (t.kategori ?? '').toLowerCase() ==
-                                          'topping',
-                                    )
-                                    .toList();
+                                    .where((t) =>(t.kategori ?? '').toLowerCase() =='topping',).toList();
                                 final drinkToppings = allToppings
-                                    .where(
-                                      (t) =>
-                                          (t.kategori ?? '').toLowerCase() ==
-                                          'drink',
-                                    )
-                                    .toList();
+                                    .where((t) =>(t.kategori ?? '').toLowerCase() =='drink',).toList();
 
-                                if (_selectedLevel.isEmpty &&
-                                    levelToppings.isNotEmpty &&
-                                    widget.itemKustomisasiLama == null) {
-                                  WidgetsBinding.instance.addPostFrameCallback((
-                                    _,
-                                  ) {
+                                if (_selectedLevel.isEmpty &&levelToppings.isNotEmpty && widget.itemKustomisasiLama == null) {
+                                  WidgetsBinding.instance.addPostFrameCallback(( _,){
                                     setState(() {
-                                      _selectedLevel =
-                                          levelToppings.first.nama_topping ??
-                                          '';
+                                      _selectedLevel =levelToppings.first.nama_topping ?? '';
                                     });
                                   });
                                 }
-
-                                // FIX UTAMA BARIS 286: Menggunakan perulangan & pengecekan bertahap
-                                // Menghilangkan pembuatan ToppingModel() kosong untuk menghindari missing_required_argument
                                 if (widget.itemKustomisasiLama != null &&
                                     _selectedToppings.isEmpty) {
                                   final List<dynamic> namaToppingsLama =
@@ -411,44 +359,26 @@ class _DetailMenuScreenState extends State<DetailMenuScreen> {
                                           thickness: 1,
                                         ),
                                       ),
-                                      if (menuKategori == 'makanan' &&
-                                          levelToppings.isNotEmpty) ...[
+                                      if (menuKategori == 'makanan' && levelToppings.isNotEmpty) ...[
                                         const Text(
                                           'PILIH LEVEL',
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.bold,
-                                            color: AppColors.textPrimary,
-                                            letterSpacing: 1.0,
-                                          ),
+                                          style: AppTextStyles.formLabel
                                         ),
                                         const SizedBox(height: 6),
                                         _buildLevelOptions(levelToppings),
                                         const Padding(
-                                          padding: EdgeInsets.symmetric(
-                                            vertical: 14.0,
-                                          ),
+                                          padding: EdgeInsets.symmetric(vertical: 14.0,),
                                           child: Divider(
                                             color: Color(0xFFE8D5C8),
                                             thickness: 1,
                                           ),
                                         ),
                                       ],
-                                      if (menuKategori == 'makanan' &&
-                                          extraToppings.isNotEmpty) ...[
+                                      if (menuKategori == 'makanan' &&extraToppings.isNotEmpty) ...[
                                         Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.spaceBetween,
+                                          mainAxisAlignment:MainAxisAlignment.spaceBetween,
                                           children: const [
-                                            Text(
-                                              'TOPPING',
-                                              style: TextStyle(
-                                                fontSize: 12,
-                                                fontWeight: FontWeight.bold,
-                                                color: AppColors.textPrimary,
-                                                letterSpacing: 1.0,
-                                              ),
-                                            ),
+                                            Text('TOPPING',style: AppTextStyles.formLabel),
                                             Text(
                                               'Opsional',
                                               style: TextStyle(
@@ -471,22 +401,11 @@ class _DetailMenuScreenState extends State<DetailMenuScreen> {
                                             ),
                                           ),
                                       ],
-                                      if ((menuKategori == 'makanan' ||
-                                              menuKategori == 'snack') &&
-                                          drinkToppings.isNotEmpty) ...[
+                                      if ((menuKategori == 'makanan' || menuKategori == 'snack') &&drinkToppings.isNotEmpty) ...[
                                         Row(
-                                          mainAxisAlignment:
-                                              MainAxisAlignment.spaceBetween,
+                                          mainAxisAlignment:MainAxisAlignment.spaceBetween,
                                           children: const [
-                                            Text(
-                                              'PILIH MINUMAN',
-                                              style: TextStyle(
-                                                fontSize: 12,
-                                                fontWeight: FontWeight.bold,
-                                                color: AppColors.textPrimary,
-                                                letterSpacing: 1.0,
-                                              ),
-                                            ),
+                                            Text('PILIH MINUMAN',style: AppTextStyles.formLabel),
                                             Text(
                                               'Opsional',
                                               style: TextStyle(
@@ -501,18 +420,13 @@ class _DetailMenuScreenState extends State<DetailMenuScreen> {
                                       ],
                                     ],
                                     const Padding(
-                                      padding: EdgeInsets.symmetric(
-                                        vertical: 14.0,
-                                      ),
+                                      padding: EdgeInsets.symmetric(vertical: 14.0,),
                                       child: Divider(
                                         color: Color(0xFFE8D5C8),
                                         thickness: 1,
                                       ),
                                     ),
-                                    const Text(
-                                      'CATATAN PESANAN',
-                                      style: AppTextStyles.formLabel,
-                                    ),
+                                    const Text('CATATAN PESANAN',style: AppTextStyles.formLabel),
                                     const SizedBox(height: 10),
                                     CustomTextField(
                                       controller: _catatanController,
@@ -520,7 +434,7 @@ class _DetailMenuScreenState extends State<DetailMenuScreen> {
                                       minLines: 3,
                                       maxLines: 4,
                                       hintText:
-                                          'Contoh: tidak pake sayur selada, kuah saus dipisah...',
+                                      'Catatan',
                                     ),
                                   ],
                                 );
@@ -528,19 +442,16 @@ class _DetailMenuScreenState extends State<DetailMenuScreen> {
 
                               if (state is ToppingError) {
                                 return Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 12.0,
-                                  ),
+                                  padding: const EdgeInsets.symmetric(vertical: 12.0,),
                                   child: Text(
                                     'Gagal memuat opsi variasi: ${state.message}',
                                     style: const TextStyle(
-                                      color: Colors.red,
+                                      color: AppColors.error,
                                       fontSize: 13,
                                     ),
                                   ),
                                 );
                               }
-
                               return const SizedBox.shrink();
                             },
                           ),
@@ -570,12 +481,7 @@ class _DetailMenuScreenState extends State<DetailMenuScreen> {
 
   Widget _buildBottomBar(int hargaSatuanTotal) {
     return Container(
-      padding: EdgeInsets.fromLTRB(
-        24,
-        16,
-        24,
-        MediaQuery.of(context).padding.bottom + 16,
-      ),
+      padding: EdgeInsets.fromLTRB(24,16,24,MediaQuery.of(context).padding.bottom + 16,),
       decoration: BoxDecoration(
         color: AppColors.background,
         boxShadow: [
@@ -596,17 +502,16 @@ class _DetailMenuScreenState extends State<DetailMenuScreen> {
           const SizedBox(width: 16),
           Expanded(
             child: PrimaryButton(
-              text:
-                  'Tambah  •  Rp ${_formatHarga(hargaSatuanTotal * _quantity)}',
+              text:'Tambah  •  Rp ${_formatHarga(hargaSatuanTotal * _quantity)}',
               icon: widget.itemKustomisasiLama != null
-                  ? Icons.check_circle_outline
-                  : Icons.shopping_cart_outlined,
+                ? Icons.check_circle_outline
+                : Icons.shopping_cart_outlined,
               borderRadius: 25,
               backgroundColor: AppColors.darkRed,
               textColor: Colors.white,
               onPressed: (widget.menu.tersedia ?? true)
-                  ? () => _simpanKeKeranjang(hargaSatuanTotal)
-                  : null,
+                ? () => _simpanKeKeranjang(hargaSatuanTotal)
+                : null,
             ),
           ),
         ],
@@ -619,10 +524,7 @@ class _DetailMenuScreenState extends State<DetailMenuScreen> {
       children: levels.map((level) {
         final String namaLevel = level.nama_topping ?? 'Level';
         return RadioListTile<String>(
-          title: Text(
-            namaLevel,
-            style: const TextStyle(fontSize: 14, color: AppColors.textPrimary),
-          ),
+          title: Text(namaLevel,style: const TextStyle(fontSize: 14, color: AppColors.textPrimary)),
           value: namaLevel,
           groupValue: _selectedLevel,
           activeColor: AppColors.orange,
@@ -641,11 +543,11 @@ class _DetailMenuScreenState extends State<DetailMenuScreen> {
   Widget _buildToppingOptions(List<ToppingModel> toppings) {
     return Column(
       children: toppings.map((topping) {
-        final String id = topping.id ?? '';
+        final String toppingId = topping.id ?? '';
         final String namaTopping = topping.nama_topping ?? 'Topping';
         final int harga = topping.harga ?? 0;
         final bool isAvailable = topping.tersedia ?? true;
-        final bool isSelected = _selectedToppings.any((t) => t.id == id);
+        final bool isSelected = _selectedToppings.any((t) => t.id == toppingId);
 
         return CheckboxListTile(
           title: Text(
@@ -674,11 +576,14 @@ class _DetailMenuScreenState extends State<DetailMenuScreen> {
               ? (bool? checked) {
                   setState(() {
                     if (checked == true) {
-                      _selectedToppings.add(topping);
+                      if (!_selectedToppings.any((t) => t.id == toppingId)) {
+                        _selectedToppings.add(topping);
+                      }
                     } else {
-                      _selectedToppings.removeWhere((t) => t.id == id);
+                      _selectedToppings.removeWhere((t) => t.id == toppingId);
                     }
                   });
+                  print("DEBUG - Topping Dipilih Saat Ini: ${_selectedToppings.map((t) => t.id).toList()}");
                 }
               : null,
         );

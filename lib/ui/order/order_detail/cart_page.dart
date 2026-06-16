@@ -6,11 +6,11 @@ import 'package:moburger/core/widget/custom_card.dart';
 import 'package:moburger/core/widget/custom_button.dart';
 import 'package:moburger/core/widget/empty_state_widget.dart';
 import 'package:moburger/bloc/order/order_bloc.dart';
-import 'package:moburger/bloc/order/order_event.dart';
 import 'package:moburger/bloc/order/order_state.dart';
 import 'package:moburger/bloc/cart/cart_bloc.dart';
 import 'package:moburger/bloc/cart/cart_event.dart';
 import 'package:moburger/bloc/cart/cart_state.dart';
+import 'package:moburger/core/widget/widget_cart_item.dart';
 import 'package:moburger/ui/order/order_detail/checkout_page.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -24,8 +24,7 @@ class CartScreen extends StatefulWidget {
 class _CartScreenState extends State<CartScreen> {
   String _formatPrice(dynamic price) {
     if (price == null) return '0';
-    return price.toString().replaceAllMapped(
-        RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.');
+    return price.toString().replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.');
   }
 
   @override
@@ -47,7 +46,7 @@ class _CartScreenState extends State<CartScreen> {
                   const SnackBar(content: Text('Pesanan berhasil dibuat!')),
                 );
                 context.read<CartBloc>().add(ClearCart());
-                Navigator.pop(context); // Kembali ke menu setelah sukses
+                Navigator.pop(context);
               }
               if (state is OrderFailure) {
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -76,7 +75,7 @@ class _CartScreenState extends State<CartScreen> {
                   child: ListView.builder(
                     padding: const EdgeInsets.all(16),
                     itemCount: items.length,
-                    itemBuilder: (context, index) => _buildCartItemCard(items[index]),
+                    itemBuilder: (context, index) => CartItemCard(item: items[index]),
                   ),
                 ),
                 _buildBottomCheckoutPanel(totalPrice: subtotal, items: items),
@@ -87,53 +86,6 @@ class _CartScreenState extends State<CartScreen> {
       ),
     );
   }
-
-  Widget _buildCartItemCard(Map<String, dynamic> item) {
-    final String cartItemId = item['cart_item_id'].toString();
-
-    return CustomCard(
-      padding: const EdgeInsets.all(14),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: AppColors.orange.withOpacity(0.08),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Icon(Icons.lunch_dining, color: AppColors.orange, size: 28),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(item['nama'], style: AppTextStyles.judul.copyWith(fontSize: 15)),
-                if (item['catatan'].toString().isNotEmpty)
-                  Text(item['catatan'], style: AppTextStyles.bodyRegular.copyWith(fontSize: 12, color: AppColors.textSecondary)),
-                const SizedBox(height: 8),
-                Text('Rp ${_formatPrice(item['harga'])}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-              ],
-            ),
-          ),
-          Row(
-            children: [
-              IconButton(
-                icon: const Icon(Icons.remove_circle_outline, color: AppColors.orange, size: 22),
-                onPressed: () => context.read<CartBloc>().add(DecrementCartItem(cartItemId)),
-              ),
-              Text('${item['qty']}', style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
-              IconButton(
-                icon: const Icon(Icons.add_circle, color: AppColors.orange, size: 22),
-                onPressed: () => context.read<CartBloc>().add(IncrementCartItem(cartItemId)),
-              ),
-            ],
-          )
-        ],
-      ),
-    );
-  }
-
   Widget _buildBottomCheckoutPanel({required int totalPrice, required List<Map<String, dynamic>> items}) {
     return Container(
       padding: const EdgeInsets.all(20),
@@ -162,7 +114,7 @@ class _CartScreenState extends State<CartScreen> {
                   isLoading: state is OrderLoading,
                   onPressed: () {
                     final user = Supabase.instance.client.auth.currentUser;
-                    final String nama = user?.userMetadata?['full_name'] ?? 'Pelanggan';
+                    final String nama = user?.userMetadata?['nama_lengkap'] ?? 'Pelanggan';
 
                     Navigator.push(
                       context,

@@ -13,6 +13,8 @@ class OrderModel extends Equatable{
   final String? transaction_id;
   final String? snap_token;
   final String? notes;
+  final String createdAt;
+  final List<Map<String, dynamic>>? items;
 
   const OrderModel({
     required this.id,
@@ -22,11 +24,14 @@ class OrderModel extends Equatable{
     required this.total_price,
     required this.user_id,
     required this.payment_status,
+    required this.createdAt,
     this.nama_customer,
     this.payment_method,
     this.transaction_id,
     this.snap_token,
-    this.notes
+    this.notes,
+    this.items
+    
   });
   factory OrderModel.fromJson(Map<String,dynamic> json){
     String? namaFinal = json['nama_customer'];
@@ -50,9 +55,15 @@ class OrderModel extends Equatable{
       payment_method: json['payment_method'],
       transaction_id: json['transaction_id'],
       snap_token: json['snap_token'],
-      notes: json['notes']
+      notes: json['notes'],
+      createdAt: json['created_at']?.toString() ?? DateTime.now().toIso8601String(),
+      items: json['order_items'] != null 
+          ? List<Map<String, dynamic>>.from(json['order_items']) 
+          : null,
     );
   }
   @override
-  List<Object?> get props=>[id,order_number, order_type, status, total_price, user_id, payment_status, nama_customer, payment_method, transaction_id, snap_token, notes];
+  List<Object?> get props=>[id,order_number, order_type, status, total_price, 
+  user_id, payment_status, nama_customer, payment_method, transaction_id, snap_token, 
+  notes, createdAt, items];
 }

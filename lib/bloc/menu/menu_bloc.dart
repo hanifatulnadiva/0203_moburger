@@ -1,11 +1,11 @@
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
+import 'package:moburger/bloc/menu/menu_event.dart';
+import 'package:moburger/bloc/menu/menu_state.dart';
 import 'package:moburger/core/contants/app_contants.dart';
 import 'package:moburger/data/models/menu_model.dart';
 import 'package:moburger/data/repositories/menu_repository.dart';
 
-part 'menu_event.dart';
-part 'menu_state.dart';
 
 class MenuBloc extends Bloc<MenuEvent, MenuState> {
   final MenuRepository repository;

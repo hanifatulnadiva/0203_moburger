@@ -8,6 +8,7 @@ import 'package:moburger/core/widget/card_order.dart';
 import 'package:moburger/core/widget/custom_header.dart';
 import 'package:moburger/core/widget/custom_status_card.dart';
 import 'package:moburger/core/widget/empty_state_widget.dart';
+import 'package:moburger/core/widget/kategori_filter.dart';
 import 'package:moburger/ui/menu/customer_menu.dart';
 import 'package:moburger/ui/topping/list_topping.dart';
 
@@ -20,6 +21,10 @@ class AdminDashboardScreen extends StatefulWidget {
 
 class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   final TextEditingController _searchController = TextEditingController();
+  
+  // Filter tanpa opsi 'Semua'
+  String _selectedCategory = 'diprosess'; 
+  final List<String> _categories = ['diprosess', 'siap diambil', 'selesai'];
 
   @override
   void initState() {
@@ -29,45 +34,60 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return BlocListener<OrderBloc, OrderState>(
-      listener: (context,state){
-        if (state is OrderStatusUpdateSuccess){
-          context.read<OrderBloc>().add(LoadAdminOrderHistoryEvent());
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Status pesanan berhasil diperbarui!'),
-              backgroundColor: AppColors.success,
-            ),
-          );
-        }
-      },
-      child:SingleChildScrollView(
-        padding: const EdgeInsets.only(bottom: 100),
-        child: Column(
-          children: [
-            DashboardHeader(searchController: _searchController, userRole: 'admin'),
-            Padding(
-              padding: const EdgeInsets.all(20.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildSectionTitle("Menu Cepat"),
-                  const SizedBox(height: 12),
-                  _buildQuickMenuRow(),
-                  const SizedBox(height: 24),
-                  _buildSectionTitle("Status Order Hari Ini"),
-                  const SizedBox(height: 12),
-                  _buildOrderStatusGrid(),
-                  const SizedBox(height: 24),
-                  _buildSectionTitle("Order Terbaru"),
-                  const SizedBox(height: 12),
-                  _buildOrderList(),
-                ],
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      body: BlocListener<OrderBloc, OrderState>(
+        listener: (context, state) {
+          if (state is OrderStatusUpdateSuccess) {
+            context.read<OrderBloc>().add(LoadAdminOrderHistoryEvent());
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Status pesanan berhasil diperbarui!'),
+                backgroundColor: AppColors.success,
               ),
-            ),
-          ],
+            );
+          }
+        },
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.only(bottom: 100),
+          child: Column(
+            children: [
+              DashboardHeader(searchController: _searchController, userRole: 'admin'),
+              Padding(
+                padding: const EdgeInsets.all(20.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildSectionTitle("Menu Cepat"),
+                    const SizedBox(height: 12),
+                    _buildQuickMenuRow(),
+                    const SizedBox(height: 24),
+                    _buildSectionTitle("Status Order Hari Ini"),
+                    const SizedBox(height: 12),
+                    _buildOrderStatusGrid(),
+                    const SizedBox(height: 24),
+                    _buildSectionTitle("Order Terbaru"),
+                    const SizedBox(height: 12),
+                    
+                    KategoriFilter(
+                      categories: _categories,
+                      selectedCategory: _selectedCategory,
+                      onSelected: (category) {
+                        setState(() {
+                          _selectedCategory = category;
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    
+                    _buildOrderList(),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
-      )
+      ),
     );
   }
 
@@ -112,24 +132,25 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         if (state is OrderLoading) return const Center(child: CircularProgressIndicator());
         
         if (state is OrderHistoryLoadSuccess) {
-          final activeOrders = state.orders.where((o) => o.status != 'pending').toList();
+          // Filter hanya berdasarkan kategori terpilih (tanpa 'Semua')
+          final filteredOrders = state.orders.where((o) {
+            return o.status == _selectedCategory;
+          }).toList();
           
-          if (activeOrders.isEmpty) {
-            return const EmptyStateWidget(
+          if (filteredOrders.isEmpty) {
+            return EmptyStateWidget(
               icon: Icons.receipt_long_outlined, 
               title: "Belum Ada Pesanan", 
-              description: "Tidak ada pesanan aktif."
+              description: "Tidak ada pesanan dengan status '$_selectedCategory'."
             );
           }
-          final recentOrders = activeOrders.reversed.take(5).toList();
+          final recentOrders = filteredOrders.reversed.take(5).toList();
           
           return ListView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             itemCount: recentOrders.length,
-            itemBuilder: (context, index) {
-              return AdminOrderCard(order: recentOrders[index]);
-            },
+            itemBuilder: (context, index) => AdminOrderCard(order: recentOrders[index]),
           );
         }
         return const SizedBox.shrink();
@@ -138,5 +159,4 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   }
 
   Widget _buildSectionTitle(String title) => Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold));
-
 }

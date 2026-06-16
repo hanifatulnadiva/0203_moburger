@@ -2,11 +2,23 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:moburger/bloc/auth/auth_bloc.dart';
 import 'package:moburger/bloc/auth/auth_state.dart';
+import 'package:moburger/bloc/cart/cart_bloc.dart';
+import 'package:moburger/bloc/cart/cart_event.dart';
+import 'package:moburger/bloc/cart/cart_state.dart';
+import 'package:moburger/bloc/menu/menu_bloc.dart';
+import 'package:moburger/bloc/menu/menu_state.dart';
+import 'package:moburger/bloc/topping/topping_bloc.dart';
+import 'package:moburger/bloc/topping/topping_state.dart';
 import 'package:moburger/core/contants/colors.dart';
+import 'package:moburger/core/contants/text.dart';
+import 'package:moburger/core/widget/custom_card_menu.dart';
 import 'package:moburger/core/widget/custom_header.dart';
 import 'package:moburger/core/widget/custom_navbar.dart';
+import 'package:moburger/core/widget/empty_state_widget.dart';
+import 'package:moburger/data/models/menu_model.dart';
 import 'package:moburger/ui/auth/login_page.dart';
 import 'package:moburger/ui/dashboard/home_page.dart';
+import 'package:moburger/ui/menu/detail_menu.dart';
 import 'package:moburger/ui/order/history_order/admin_history_order.dart';
 import 'package:moburger/ui/order/history_order/user_history_order.dart';
 import 'package:moburger/ui/menu/admin_menu.dart';
@@ -14,11 +26,17 @@ import 'package:moburger/ui/menu/customer_menu.dart';
 import 'package:moburger/ui/order/order_detail/cart_page.dart';
 import 'package:moburger/ui/profile/profile_page.dart';
 import 'package:moburger/ui/report/laporan_penjualan.dart';
+import 'package:moburger/ui/topping/list_topping.dart';
 
 class CustomerDashboardScreen extends StatefulWidget {
   final String userRole;
+  final TabKey? initialTab;
 
-  const CustomerDashboardScreen({super.key, required this.userRole});
+  const CustomerDashboardScreen({
+    super.key,
+    required this.userRole,
+    this.initialTab,
+  });
 
   @override
   State<CustomerDashboardScreen> createState() => _CustomerDashboardScreenState();
@@ -39,7 +57,8 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen> {
   @override
   void initState() {
     super.initState();
-    _activeTab = widget.userRole == 'admin' ? TabKey.dashboard : TabKey.home;
+    _activeTab = widget.initialTab ??
+        (widget.userRole == 'admin' ? TabKey.dashboard : TabKey.home);
   }
 
   @override
@@ -47,13 +66,29 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen> {
     _searchController.dispose();
     super.dispose();
   }
+  bool _hasLevelTopping(BuildContext context) {
+    final toppingState = context.read<ToppingBloc>().state;
+    return toppingState is ToppingSuccess && toppingState.topping.any((t) => (t.kategori ?? '').toLowerCase() == 'level');
+  }
+  void _navigateToDetail(BuildContext context, MenuModel item) {
+    Navigator.push(context, MaterialPageRoute(builder: (_) => DetailMenuScreen(menu: item))).then((_) => setState(() {}));
+  }
+  void _onTapAddDirectly(BuildContext context, MenuModel item) {
+    context.read<CartBloc>().add(AddToCart({
+      'ordder_item_id': '${item.id}_default', 'id': item.id.toString(),
+      'nama': item.nama_menu ?? 'Menu', 'harga': item.harga, 'qty': 1,
+      'level': '', 'toppings': [], 'notes': '',
+    }));
+  }
+  List<Map<String, dynamic>> _getCartItemsByMenuId(List<Map<String, dynamic>> cartItems, String menuId) =>
+      cartItems.where((i) => i['id'].toString() == menuId).toList();
+
+  String _formatPrice(dynamic price) => price.toString().replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.');
 
   @override
   Widget build(BuildContext context) {
     final tabs = _getTabsByRole();
     final activeIndex = tabs.contains(_activeTab) ? tabs.indexOf(_activeTab) : 0;
-
-    // Pindahkan listener ke sini agar bisa mengontrol navigasi dari level atas
     return BlocListener<AuthBloc, AuthState>(
       listenWhen: (previous, current) => current is Unauthenticated,
       listener: (context, state) {
@@ -148,29 +183,27 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen> {
                   padding: EdgeInsets.symmetric(horizontal: 20.0),
                   child: Text(
                     'Kategori Menu',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.textPrimary,
-                    ),
+                    style: AppTextStyles.judul
                   ),
                 ),
                 const SizedBox(height: 12),
                 //_buildCategoryList(),
-                const SizedBox(height: 24),
-                const Padding(
+                const SizedBox(height: 12),
+                Padding(
                   padding: EdgeInsets.symmetric(horizontal: 20.0),
-                  child: Text(
-                    'Menu Terlaris 🔥',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.textPrimary,
-                    ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text("Menu Terbaru", style: AppTextStyles.judul),
+                      TextButton(
+                        onPressed: () => setState(() => _activeTab = TabKey.menu),
+                        child: Text("See All", style: TextStyle(color: AppColors.orange, fontWeight: FontWeight.bold)),
+                      ),
+                    ],
                   ),
                 ),
                 const SizedBox(height: 12),
-                _buildBestSellerGrid(),
+                _buildCatalogGrid(),
               ],
             ),
           ),
@@ -265,130 +298,42 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen> {
     );
   }
 
-  // Widget _buildCategoryList() {
-  //   return SizedBox(
-  //     height: 40,
-  //     child: ListView.builder(
-  //       scrollDirection: Axis.horizontal,
-  //       physics: const BouncingScrollPhysics(),
-  //       padding: const EdgeInsets.symmetric(horizontal: 16),
-  //       itemCount: _categories.length,
-  //       itemBuilder: (context, index) {
-  //         bool isSelected = _selectedCategoryIndex == index;
-  //         return Padding(
-  //           padding: const EdgeInsets.symmetric(horizontal: 4.0),
-  //           child: ChoiceChip(
-  //             label: Text(_categories[index]),
-  //             selected: isSelected,
-  //             showCheckmark: false,
-  //             selectedColor: AppColors.darkRed,
-  //             backgroundColor: AppColors.white,
-  //             labelStyle: TextStyle(
-  //               color: isSelected ? Colors.white : AppColors.textSecondary,
-  //               fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-  //             ),
-  //             shape: RoundedRectangleBorder(
-  //               borderRadius: BorderRadius.circular(12),
-  //               side: BorderSide(
-  //                 color: isSelected ? Colors.transparent : Colors.black12,
-  //               ),
-  //             ),
-  //             onSelected: (bool selected) {
-  //               setState(() {
-  //                 _selectedCategoryIndex = index;
-  //               });
-  //             },
-  //           ),
-  //         );
-  //       },
-  //     ),
-  //   );
-  // }
-
-  Widget _buildBestSellerGrid() {
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        crossAxisSpacing: 14,
-        mainAxisSpacing: 14,
-        childAspectRatio: 0.78,
-      ),
-      itemCount: 4,
-      itemBuilder: (context, index) {
-        return Card(
-          color: Colors.white,
-          elevation: 3,
-          shadowColor: Colors.black12,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(18),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(12.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Center(
-                    child: Icon(
-                      Icons.lunch_dining_rounded,
-                      size: 70,
-                      color: AppColors.orange,
-                    ),
-                  ),
-                ),
-                const Text(
-                  'Cheese Burger Super',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                const Text(
-                  'Daging sapi asli + keju lumer',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: AppColors.textSecondary,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      'Rp 32.000',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                        color: AppColors.orange,
-                      ),
-                    ),
-                    Container(
-                      width: 32,
-                      height: 32,
-                      decoration: const BoxDecoration(
-                        color: AppColors.darkRed,
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.add_rounded,
-                        color: Colors.white,
-                        size: 20,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
+  Widget _buildCatalogGrid() {
+    return BlocBuilder<MenuBloc, MenuState>(
+      builder: (context, menuState) {
+        return BlocBuilder<CartBloc, CartState>(
+          builder: (context, cartState) {
+            if (menuState is MenuLoading) return const Center(child: CircularProgressIndicator());
+            List<dynamic> menuList = [];
+            if (menuState is MenuSuccess) menuList = List.from(menuState.menu).reversed.take(6).toList();
+            List<Map<String, dynamic>> cartItems = (cartState is CartLoaded) ? cartState.cartItems : [];
+            return GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2, crossAxisSpacing: 16, mainAxisSpacing: 16, childAspectRatio: 0.75,
+              ),
+              itemCount: menuList.length,
+              itemBuilder: (context, index) {
+                final item = menuList[index];
+                final menuCartItems = _getCartItemsByMenuId(cartItems, item.id.toString());
+                final qty = menuCartItems.fold(0, (sum, e) => sum + (e['qty'] as int));
+                return MenuCard(
+                  item: item, menuId: item.id.toString(), isAvailable: item.tersedia ?? true, currentQty: qty,
+                  onTapCard: () => _navigateToDetail(context, item),
+                  onTapAction: () {
+                    if (item.kategori?.toLowerCase() == 'makanan' || _hasLevelTopping(context)) {
+                      _navigateToDetail(context, item);
+                    } else {
+                      _onTapAddDirectly(context, item);
+                    }
+                  },
+                  formatPrice: _formatPrice,
+                );
+              },
+            );
+          },
         );
       },
     );

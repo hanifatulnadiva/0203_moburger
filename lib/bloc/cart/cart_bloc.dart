@@ -7,25 +7,39 @@ class CartBloc extends Bloc<CartEvent, CartState> {
     on<AddToCart>(_onAddToCart);
     on<IncrementCartItem>(_onIncrementCartItem);
     on<DecrementCartItem>(_onDecrementCartItem);
-    on<UpdateCartItem>(_onUpdateCartItem); // Registrasi event update di sini
+    on<UpdateCartItem>(_onUpdateCartItem);
     on<ClearCart>(_onClearCart);
   }
 
   void _onAddToCart(AddToCart event, Emitter<CartState> emit) {
     List<Map<String, dynamic>> currentItems = [];
-    
+
     if (state is CartLoaded) {
       currentItems = (state as CartLoaded).cartItems.map((item) {
         return Map<String, dynamic>.from(item);
       }).toList();
     }
+    
+    final Map<String, dynamic> itemToAdd = Map<String, dynamic>.from(event.item);
+    
+    // Pastikan ID diset
+    if (itemToAdd.containsKey('id') && !itemToAdd.containsKey('menu_id')) {
+      itemToAdd['menu_id'] = itemToAdd['id'];
+    }
+    
+    // Fallback jika nama_menu tidak ada dari pengirim
+    if (!itemToAdd.containsKey('nama_menu')) {
+      itemToAdd['nama_menu'] = itemToAdd['nama'] ?? 'Unknown Item';
+    }
 
-    final index = currentItems.indexWhere((item) => item['cart_item_id'] == event.item['cart_item_id']);
+    final index = currentItems.indexWhere(
+      (item) => item['order_item_id'] == itemToAdd['order_item_id'],
+    );
 
     if (index >= 0) {
-      currentItems[index]['qty'] += event.item['qty'];
+      currentItems[index]['qty'] += itemToAdd['qty'];
     } else {
-      currentItems.add(Map<String, dynamic>.from(event.item));
+      currentItems.add(itemToAdd);
     }
 
     emit(CartLoaded(cartItems: currentItems));
@@ -33,11 +47,12 @@ class CartBloc extends Bloc<CartEvent, CartState> {
 
   void _onIncrementCartItem(IncrementCartItem event, Emitter<CartState> emit) {
     if (state is CartLoaded) {
-      final List<Map<String, dynamic>> updatedItems = (state as CartLoaded).cartItems.map((item) {
-        return Map<String, dynamic>.from(item);
-      }).toList();
+      final List<Map<String, dynamic>> updatedItems = (state as CartLoaded)
+          .cartItems
+          .map((item) => Map<String, dynamic>.from(item))
+          .toList();
 
-      final index = updatedItems.indexWhere((item) => item['cart_item_id'] == event.cartItemId);
+      final index = updatedItems.indexWhere((item) => item['order_item_id'] == event.cartItemId);
 
       if (index >= 0) {
         updatedItems[index]['qty'] += 1;
@@ -48,58 +63,63 @@ class CartBloc extends Bloc<CartEvent, CartState> {
 
   void _onDecrementCartItem(DecrementCartItem event, Emitter<CartState> emit) {
     if (state is CartLoaded) {
-      final List<Map<String, dynamic>> updatedItems = (state as CartLoaded).cartItems.map((item) {
-        return Map<String, dynamic>.from(item);
-      }).toList();
+      final List<Map<String, dynamic>> updatedItems = (state as CartLoaded)
+          .cartItems
+          .map((item) => Map<String, dynamic>.from(item))
+          .toList();
 
-      final index = updatedItems.indexWhere((item) => item['cart_item_id'] == event.cartItemId);
+      final index = updatedItems.indexWhere((item) => item['order_item_id'] == event.cartItemId);
 
       if (index >= 0) {
         if (updatedItems[index]['qty'] > 1) {
           updatedItems[index]['qty'] -= 1;
-          emit(CartLoaded(cartItems: updatedItems));
         } else {
           updatedItems.removeAt(index);
-          
-          if (updatedItems.isEmpty) {
-            emit(CartInitial());
-          } else {
-            emit(CartLoaded(cartItems: updatedItems));
-          }
+        }
+
+        if (updatedItems.isEmpty) {
+          emit(CartInitial());
+        } else {
+          emit(CartLoaded(cartItems: updatedItems));
         }
       }
     }
   }
 
-  // LOGIKA UTAS: Memperbarui variasi item lama tanpa merusak variasi menu lainnya
   void _onUpdateCartItem(UpdateCartItem event, Emitter<CartState> emit) {
+    print("DEBUG - Data yang dikirim ke BLoC: ${event.newItem}");
     if (state is CartLoaded) {
-      final List<Map<String, dynamic>> updatedItems = (state as CartLoaded).cartItems.map((item) {
-        return Map<String, dynamic>.from(item);
-      }).toList();
+      final List<Map<String, dynamic>> updatedItems = (state as CartLoaded)
+          .cartItems
+          .map((item) => Map<String, dynamic>.from(item))
+          .toList();
 
-      // 1. Cari baris index item variasi lama yang mau diedit
-      final indexLama = updatedItems.indexWhere((item) => item['cart_item_id'] == event.oldCartItemId);
+      final indexLama = updatedItems.indexWhere(
+        (item) => item['order_item_id'] == event.oldCartItemId,
+      );
 
       if (indexLama >= 0) {
-        // Simpan jumlah quantity lama supaya tidak berubah/mereset menjadi 1 saat kustomisasi diganti
+        // Ambil data penting sebelum ditimpa
         final int simpanQtyLama = updatedItems[indexLama]['qty'];
+        final String namaLama = updatedItems[indexLama]['nama_menu'] ?? 'Unknown Item';
 
-        // 2. Cek apakah variasi BARU hasil edit ternyata kembar dengan variasi LAIN yang sudah ada di keranjang
         final indexDuplikat = updatedItems.indexWhere(
-          (item) => item['cart_item_id'] == event.newItem['cart_item_id'] && item['cart_item_id'] != event.oldCartItemId
+          (item) => item['order_item_id'] == event.newItem['order_item_id'] &&
+              item['order_item_id'] != event.oldCartItemId,
         );
 
         if (indexDuplikat >= 0) {
-          // Jika kembar dengan variasi lain, gabungkan quantity-nya ke variasi tersebut, lalu hapus baris yang lama
           updatedItems[indexDuplikat]['qty'] += simpanQtyLama;
           updatedItems.removeAt(indexLama);
         } else {
-          // Jika kombinasinya benar-benar baru dan unik, timpa data lama dengan data setelan kustomisasi baru
+          // Perbarui item dengan data baru
           updatedItems[indexLama] = Map<String, dynamic>.from(event.newItem);
-          updatedItems[indexLama]['qty'] = simpanQtyLama; // Kunci qty asli agar tetap terjaga
+          // Paksa set kembali qty dan nama_menu agar tidak hilang
+          updatedItems[indexLama]['qty'] = simpanQtyLama;
+          if (!updatedItems[indexLama].containsKey('nama_menu') || updatedItems[indexLama]['nama_menu'] == null) {
+            updatedItems[indexLama]['nama_menu'] = namaLama;
+          }
         }
-        
         emit(CartLoaded(cartItems: updatedItems));
       }
     }

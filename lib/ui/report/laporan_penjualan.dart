@@ -19,7 +19,6 @@ class _ReportScreenState extends State<ReportScreen> {
   void initState() {
     super.initState();
     _testSupabase(); 
-    // Mengambil data untuk hari ini saat halaman dibuka
     final today = DateTimeRange(start: DateTime.now(), end: DateTime.now());
     context.read<ReportBloc>().add(FetchReportData(today));
   }

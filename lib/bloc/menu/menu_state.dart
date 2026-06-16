@@ -1,4 +1,6 @@
-part of 'menu_bloc.dart';
+
+import 'package:equatable/equatable.dart';
+import 'package:moburger/data/models/menu_model.dart';
 
 sealed class MenuState extends Equatable {
   const MenuState();

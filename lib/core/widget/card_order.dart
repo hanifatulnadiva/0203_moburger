@@ -29,34 +29,51 @@ class AdminOrderCard extends StatelessWidget {
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 14),
-      child: CustomCard(
-        badgeText: order.status.toUpperCase(),
-        badgeColor: _statusBadgeColor(order.status),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Order #${order.order_number ?? order.id.substring(0, 8).toUpperCase()}', 
-                 style: AppTextStyles.formLabel),
-            const SizedBox(height: 8),
-            Text('Pelanggan: ${order.nama_customer?? 'Umum'}', style: AppTextStyles.bodyRegular),
-            Text('Total: Rp ${order.total_price}', 
-                 style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.darkRed)),
-            
-            // Catatan
-            if (order.notes != null && order.notes!.isNotEmpty) ...[
-              const SizedBox(height: 8),
-              Text('Catatan: ${order.notes}', 
-                   style: AppTextStyles.bodyRegular.copyWith(fontStyle: FontStyle.italic, color: Colors.grey)),
-            ],
-
-            if (nextAction != null) ...[
-              const SizedBox(height: 12),
-              PrimaryButton(
-                text: nextAction,
-                onPressed: () => context.read<OrderBloc>().add(UpdateOrderStatusEvent(orderId: order.id, status: nextStatus!)),
+      child: SizedBox(
+        // Memaksa kartu mengambil seluruh lebar layar
+        width: double.infinity, 
+        child: CustomCard(
+          badgeText: order.status.toUpperCase(),
+          badgeColor: _statusBadgeColor(order.status),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Order #${order.order_number ?? order.id.substring(0, 8).toUpperCase()}', 
+                style: AppTextStyles.formLabel,
+                overflow: TextOverflow.ellipsis, // Mencegah overflow
               ),
-            ]
-          ],
+              const SizedBox(height: 8),
+              Text(
+                'Pelanggan: ${order.nama_customer ?? 'Umum'}', 
+                style: AppTextStyles.bodyRegular,
+                overflow: TextOverflow.ellipsis, // Mencegah overflow
+              ),
+              Text(
+                'Total: Rp ${order.total_price}', 
+                style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.darkRed)
+              ),
+            
+              // Catatan
+              if (order.notes != null && order.notes!.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Text(
+                  'Catatan: ${order.notes}', 
+                  style: AppTextStyles.bodyRegular.copyWith(fontStyle: FontStyle.italic, color: Colors.grey),
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 2,
+                ),
+              ],
+
+              if (nextAction != null) ...[
+                const SizedBox(height: 12),
+                PrimaryButton(
+                  text: nextAction,
+                  onPressed: () => context.read<OrderBloc>().add(UpdateOrderStatusEvent(orderId: order.id, status: nextStatus!)),
+                ),
+              ]
+            ],
+          ),
         ),
       ),
     );

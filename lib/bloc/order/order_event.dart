@@ -29,9 +29,8 @@ class WatchOrderEvent extends OrderEvent {
   List<Object?> get props => [orderId];
 }
 
-/// Event internal untuk memperbarui state saat stream Supabase memberikan data baru
 class OrderUpdatedEvent extends OrderEvent {
-  final dynamic order; // Menggunakan dynamic/OrderModel? untuk safety casting
+  final dynamic order; 
 
   const OrderUpdatedEvent(this.order);
 
@@ -39,7 +38,6 @@ class OrderUpdatedEvent extends OrderEvent {
   List<Object?> get props => [order];
 }
 
-/// Event saat Admin mengubah status pesanan ('proses' | 'siap diambil' | 'selesai')
 class UpdateOrderStatusEvent extends OrderEvent {
   final String orderId;
   final String status;
@@ -53,3 +51,11 @@ class UpdateOrderStatusEvent extends OrderEvent {
 class LoadUserOrderHistoryEvent extends OrderEvent {}
 
 class LoadAdminOrderHistoryEvent extends OrderEvent {}
+
+class LoadOrderDetailEvent extends OrderEvent {
+  final String orderId;
+  const LoadOrderDetailEvent(this.orderId);
+
+  @override
+  List<Object?> get props => [orderId];
+}
