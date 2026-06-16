@@ -1,12 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:intl/intl.dart';
+import 'package:moburger/core/contants/colors.dart';
+import 'package:moburger/ui/order/pemantauan/qr_screen.dart';
+import 'package:timeline_tile/timeline_tile.dart';
 import 'package:moburger/bloc/order/order_bloc.dart';
 import 'package:moburger/bloc/order/order_event.dart';
 import 'package:moburger/bloc/order/order_state.dart';
-import 'package:timeline_tile/timeline_tile.dart';
+import 'package:moburger/data/models/order_item_details_model.dart';
+import 'package:moburger/data/repositories/order_repository.dart';
 
 class OrderTrackingPage extends StatefulWidget {
   final String orderNumber;
+
   const OrderTrackingPage({super.key, required this.orderNumber});
 
   @override
@@ -14,91 +20,311 @@ class OrderTrackingPage extends StatefulWidget {
 }
 
 class _OrderTrackingPageState extends State<OrderTrackingPage> {
-  
+  Future<List<OrderItemWithDetails>>? _itemsFuture;
+  String? _loadedForOrderId;
+
   @override
   void initState() {
     super.initState();
-    // Memulai proses monitoring saat halaman dibuka
     context.read<OrderBloc>().add(WatchOrderEvent(orderId: widget.orderNumber));
+  }
+
+  void _ensureItemsLoaded(String orderId) {
+    if (_loadedForOrderId == orderId) return;
+    _loadedForOrderId = orderId;
+    _itemsFuture = OrderRepository().getOrderDetail(orderId);
+  }
+
+  String _formatPrice(num price) {
+    return NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0).format(price);
+  }
+
+  String _formatDateTime(String isoString) {
+    final date = DateTime.tryParse(isoString);
+    if (date == null) return '-';
+    const bulan = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+    final jam = date.hour.toString().padLeft(2, '0');
+    final menit = date.minute.toString().padLeft(2, '0');
+    return '${date.day} ${bulan[date.month - 1]} ${date.year}, $jam:$menit';
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Pemantauan Pesanan")),
+      backgroundColor: AppColors.background,
+      appBar: AppBar(
+        backgroundColor: AppColors.background,
+        elevation: 0,
+        foregroundColor: AppColors.textPrimary,
+        title: Text("Order #${widget.orderNumber}", style: const TextStyle(fontWeight: FontWeight.bold)),
+      ),
       body: BlocBuilder<OrderBloc, OrderState>(
         builder: (context, state) {
           if (state is OrderLoading) {
-            return const Center(child: CircularProgressIndicator());
+            return const Center(child: CircularProgressIndicator(color: AppColors.orange));
           }
-          
-          if (state is OrderWatchSuccess) {
-            final int statusIndex = state.statusIndex;
 
-            return Column(
+          if (state is OrderWatchSuccess) {
+            final order = state.order;
+            final statusIndex = state.statusIndex;
+
+            _ensureItemsLoaded(order.id);
+
+            return ListView(
+              padding: const EdgeInsets.all(20),
               children: [
-                Expanded(
-                  child: ListView(
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                    children: [
-                      _buildTimelineTile(0, 'Menunggu Pembayaran', statusIndex, isFirst: true),
-                      _buildTimelineTile(1, 'Pembayaran Berhasil', statusIndex),
-                      _buildTimelineTile(2, 'Makanan Diproses', statusIndex),
-                      _buildTimelineTile(3, 'Siap Diambil', statusIndex),
-                      _buildTimelineTile(4, 'Selesai', statusIndex, isLast: true),
-                    ],
+                _buildMenuCarousel(),
+                const SizedBox(height: 24),
+                const Text(
+                  "Status Pesanan",
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textPrimary,
                   ),
+                ),
+                const SizedBox(height: 12),
+                _buildTimelineTile(
+                  index: 0,
+                  icon: Icons.payments_outlined,
+                  title: 'Menunggu Pembayaran',
+                  description: 'Selesaikan pembayaran agar pesananmu diproses.',
+                  statusIndex: statusIndex,
+                  timestamp: order.createdAt,
+                  isFirst: true,
+                ),
+                _buildTimelineTile(
+                  index: 1,
+                  icon: Icons.check_circle_outline,
+                  title: 'Pembayaran Diterima',
+                  description: 'Pembayaran kamu sudah kami terima.',
+                  statusIndex: statusIndex,
+                  timestamp: order.updateAt,
+                ),
+                _buildTimelineTile(
+                  index: 2,
+                  icon: Icons.outdoor_grill_outlined,
+                  title: 'Pesanan Diproses',
+                  description: 'Koki kami sedang menyiapkan pesananmu.',
+                  statusIndex: statusIndex,
+                  timestamp: order.updateAt,
+                ),
+                _buildTimelineTile(
+                  index: 3,
+                  icon: Icons.shopping_bag_outlined,
+                  title: 'Pesanan Siap Diambil',
+                  description: 'Pesananmu sudah siap, silakan diambil.',
+                  statusIndex: statusIndex,
+                  timestamp: order.updateAt,
+                  extra: statusIndex == 3 ? _buildQrButton(order.order_number) : null,
+                ),
+                _buildTimelineTile(
+                  index: 4,
+                  icon: Icons.emoji_food_beverage_outlined,
+                  title: 'Pesanan Selesai',
+                  description: 'Pesanan telah selesai. Selamat menikmati!',
+                  statusIndex: statusIndex,
+                  timestamp: order.updateAt,
+                  isLast: true,
                 ),
               ],
             );
           }
-          
+
           if (state is OrderFailure) {
             return Center(child: Text("Error: ${state.errorMessage}"));
           }
-          
+
           return const SizedBox.shrink();
         },
       ),
     );
   }
 
-  Widget _buildOrderHeader(Map<String, dynamic> data) {
-    return Container(
-      height: 120,
-      margin: const EdgeInsets.all(16),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.2), blurRadius: 10)],
+  Widget _buildQrButton(String orderNumber) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 10),
+      child: SizedBox(
+        width: double.infinity,
+        child: ElevatedButton.icon(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppColors.orange,
+            foregroundColor: AppColors.white,
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+          icon: const Icon(Icons.qr_code_rounded, size: 20),
+          label: const Text("Lihat Kode Pengambilan"),
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => OrderQrPage(orderNumber: orderNumber)),
+            );
+          },
+        ),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+    );
+  }
+
+  Widget _buildMenuCarousel() {
+    if (_itemsFuture == null) {
+      return const SizedBox(
+        height: 110,
+        child: Center(child: CircularProgressIndicator(color: AppColors.orange)),
+      );
+    }
+
+    return FutureBuilder<List<OrderItemWithDetails>>(
+      future: _itemsFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const SizedBox(
+            height: 110,
+            child: Center(child: CircularProgressIndicator(color: AppColors.orange)),
+          );
+        }
+        if (!snapshot.hasData || snapshot.data!.isEmpty) {
+          return const SizedBox.shrink();
+        }
+
+        final items = snapshot.data!;
+
+        if (items.length == 1) {
+          return _buildMenuItemCard(items.first);
+        }
+
+        return SizedBox(
+          height: 130,
+          child: PageView.builder(
+            controller: PageController(viewportFraction: 0.85),
+            itemCount: items.length,
+            itemBuilder: (context, index) {
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 6),
+                child: _buildMenuItemCard(items[index]),
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildMenuItemCard(OrderItemWithDetails item) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(color: AppColors.darkRed.withOpacity(0.06), blurRadius: 10, offset: const Offset(0, 4)),
+        ],
+      ),
+      child: Row(
         children: [
-          Text("Pesanan #${widget.orderNumber}", style: const TextStyle(fontWeight: FontWeight.bold)),
-          const SizedBox(height: 8),
-          Text("Total: Rp ${data['total_price']}"),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: item.imageUrl != null
+                ? Image.network(
+                    item.imageUrl!,
+                    width: 64,
+                    height: 64,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => _menuPlaceholderIcon(),
+                  )
+                : _menuPlaceholderIcon(),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  item.menuName,
+                  style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.textPrimary, fontSize: 14),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '${item.quantity}x  •  ${_formatPrice(item.price)}',
+                  style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildTimelineTile(int index, String title, int statusIndex, {bool isFirst = false, bool isLast = false}) {
+  Widget _menuPlaceholderIcon() {
+    return Container(
+      width: 64,
+      height: 64,
+      color: AppColors.darkRed.withOpacity(0.08),
+      child: const Icon(Icons.lunch_dining, color: AppColors.darkRed, size: 28),
+    );
+  }
+
+  Widget _buildTimelineTile({
+    required int index,
+    required IconData icon,
+    required String title,
+    required String description,
+    required int statusIndex,
+    required String timestamp,
+    Widget? extra,
+    bool isFirst = false,
+    bool isLast = false,
+  }) {
+    final bool isDone = index <= statusIndex;
+    final Color activeColor = AppColors.orange;
+    final Color inactiveColor = Colors.grey.shade300;
+
     return TimelineTile(
       isFirst: isFirst,
       isLast: isLast,
       indicatorStyle: IndicatorStyle(
-        width: 25,
-        height: 25,
-        color: index <= statusIndex ? Colors.purple : Colors.grey[300]!,
-        iconStyle: index <= statusIndex ? IconStyle(iconData: Icons.check, color: Colors.white, fontSize: 16) : null,
+        width: 32,
+        height: 32,
+        color: isDone ? activeColor : inactiveColor,
+        iconStyle: IconStyle(
+          iconData: icon,
+          color: isDone ? AppColors.white : Colors.grey.shade500,
+          fontSize: 16,
+        ),
       ),
-      beforeLineStyle: LineStyle(color: index <= statusIndex ? Colors.purple : Colors.grey[300]!, thickness: 3),
-      afterLineStyle: LineStyle(color: index <= statusIndex ? Colors.purple : Colors.grey[300]!, thickness: 3),
+      beforeLineStyle: LineStyle(color: isDone ? activeColor : inactiveColor, thickness: 3),
+      afterLineStyle: LineStyle(color: isDone ? activeColor : inactiveColor, thickness: 3),
       endChild: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Text(title, style: TextStyle(fontWeight: index == statusIndex ? FontWeight.bold : FontWeight.normal)),
+        padding: const EdgeInsets.only(left: 16, bottom: 24, top: 2),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: TextStyle(
+                fontWeight: index == statusIndex ? FontWeight.bold : FontWeight.w600,
+                color: AppColors.textPrimary,
+                fontSize: 14,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              description,
+              style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+            ),
+            if (index == statusIndex) ...[
+              const SizedBox(height: 4),
+              Text(
+                _formatDateTime(timestamp),
+                style: const TextStyle(fontSize: 11, color: AppColors.orange, fontWeight: FontWeight.w600),
+              ),
+            ],
+            if (extra != null) extra,
+          ],
+        ),
       ),
     );
   }

@@ -148,7 +148,14 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
       child: ElevatedButton(
         style: ElevatedButton.styleFrom(backgroundColor: AppColors.orange, foregroundColor: AppColors.white),
         onPressed: () {
-          Navigator.push(context, MaterialPageRoute(builder: (_) => OrderTrackingPage(orderNumber: widget.order.order_number)));
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => OrderTrackingPage(
+                orderNumber: widget.order.order_number,
+              ),
+            ),
+          );
         },
         child: const Text("Lacak Pesanan"),
       ),

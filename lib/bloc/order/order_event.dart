@@ -12,12 +12,16 @@ class CreateOrderEvent extends OrderEvent {
   final int totalPrice;
   final String namaCustomer;
   final String orderType;
+  final String? notes;
+  final String? snapToken;
 
   const CreateOrderEvent({
     required this.items, 
     required this.totalPrice, 
     required this.namaCustomer,
-    required this.orderType
+    required this.orderType,
+    this.notes,
+    this.snapToken
   });
 }
 /// Event untuk memantau satu order secara realtime (Stream)

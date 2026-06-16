@@ -26,13 +26,20 @@ class OrderWatchSuccess extends OrderState {
   OrderWatchSuccess(this.order);
 
   int get statusIndex {
+    if (order.payment_status != 'settlement') {
+      return 0; // Menunggu Pembayaran
+    }
     switch (order.status) {
-      case 'menunggu_pembayaran': return 0;
-      case 'pembayaran_berhasil': return 1;
-      case 'diproses': return 2;
-      case 'siap_diambil': return 3;
-      case 'selesai': return 4;
-      default: return 0;
+      case 'pending':
+        return 1; // Pembayaran Diterima, order belum diproses
+      case 'proses':
+        return 2; // Pesanan Diproses
+      case 'siap diambil':
+        return 3; // Pesanan Siap Diambil
+      case 'selesai':
+        return 4; // Pesanan Selesai
+      default:
+        return 1;
     }
   }
 

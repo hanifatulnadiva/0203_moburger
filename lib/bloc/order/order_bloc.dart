@@ -33,6 +33,8 @@ class OrderBloc extends Bloc<OrderEvent, OrderState> {
         namaCustomer: event.namaCustomer,
         orderType: event.orderType,
         items: event.items,
+        notes: event.notes ?? "",
+        snapToken: event.snapToken ?? ""
       );
 
       emit(OrderCreateSuccess(orderId: orderNumber));

@@ -1,10 +1,11 @@
 class OrderItemWithDetails {
-  final String id; 
+  final String id;
   final String menuName;
   final int quantity;
-  final double price; 
-  final List<String> toppingNames; 
-  final double subTotal; 
+  final double price;
+  final List<String> toppingNames;
+  final double subTotal;
+  final String? imageUrl;
 
   OrderItemWithDetails({
     required this.id,
@@ -12,6 +13,7 @@ class OrderItemWithDetails {
     required this.quantity,
     required this.price,
     required this.toppingNames,
+    this.imageUrl,
   }) : subTotal = quantity * price;
 
   factory OrderItemWithDetails.fromJson(Map<String, dynamic> json) {
@@ -22,9 +24,9 @@ class OrderItemWithDetails {
       id: json['id'],
       menuName: json['menu']['nama_menu'],
       quantity: json['quantity'],
-      price: (json['menu']['harga'] as num).toDouble(), 
+      price: (json['menu']['harga'] as num).toDouble(),
+      imageUrl: json['menu']['image_url'],
       toppingNames: names,
     );
   }
-
 }

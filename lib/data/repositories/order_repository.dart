@@ -23,6 +23,8 @@ class OrderRepository {
     required String namaCustomer,
     required String orderType,
     required List<Map<String, dynamic>> items,
+    required String notes,
+    required String snapToken
   }) async {
     try {
       // 1. Panggil SQL Function.
@@ -33,6 +35,8 @@ class OrderRepository {
         'p_nama_customer': namaCustomer,
         'p_order_type': orderType,
         'p_items': items,
+        'p_notes': notes,        // Jangan lupa kirim ini
+        'p_snap_token': snapToken
       });
       print("DEBUG: UUID yang didapat dari database: $orderUuid");
 
@@ -60,7 +64,7 @@ class OrderRepository {
     return _supabase
         .from('order')
         .stream(primaryKey: ['id'])
-        .eq('order_number', orderNumber) // Menggunakan order_number (string)
+        .eq('order_number', orderNumber)
         .map((maps) {
           if (maps.isNotEmpty) {
             return OrderModel.fromJson(maps.first);
@@ -128,26 +132,20 @@ class OrderRepository {
 
   Future<List<OrderItemWithDetails>> getOrderDetail(String orderId) async {
     try {
-      print("DEBUG: getOrderDetail dipanggil dengan orderId = $orderId");
-
       final response = await _supabase
           .from('order_item')
           .select('''
             id,
             quantity,
             subtotal,
-            menu(nama_menu, harga),
+            menu(nama_menu, harga, image_url),
             order_item_topping(
               topping(nama_topping)
             )
           ''')
           .eq('order_id', orderId);
 
-      print("DEBUG: raw response getOrderDetail = $response");
-
       final List<dynamic> data = response as List<dynamic>;
-
-      print("DEBUG: jumlah item ditemukan = ${data.length}");
 
       return data
           .map((item) => OrderItemWithDetails.fromJson(item as Map<String, dynamic>))
