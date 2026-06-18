@@ -3,15 +3,16 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:moburger/bloc/auth/auth_bloc.dart';
 import 'package:moburger/bloc/auth/auth_state.dart';
 import 'package:moburger/core/contants/colors.dart';
+import 'package:moburger/core/contants/text.dart';
 import 'package:moburger/core/widget/custom_search.dart';
 
 class DashboardHeader extends StatelessWidget {
   final TextEditingController searchController;
-  final String userRole; 
+  final String userRole;
   final ValueChanged<String>? onSearchChanged;
   final VoidCallback? onSearchClear;
-  final VoidCallback? onRightActionTap; 
-  final VoidCallback? onFilterOrScanTap; 
+  final VoidCallback? onRightActionTap;
+  final VoidCallback? onFilterOrScanTap;
 
   const DashboardHeader({
     super.key,
@@ -25,6 +26,8 @@ class DashboardHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bool isAdmin = userRole == 'admin';
+
     return BlocBuilder<AuthBloc, AuthState>(
       builder: (context, state) {
         String username = 'Pelanggan';
@@ -32,13 +35,11 @@ class DashboardHeader extends StatelessWidget {
           username = state.user.nama_lengkap.trim().split(' ').first;
         }
 
-        bool isAdmin = userRole == 'admin';
-
         return Container(
           width: double.infinity,
           padding: const EdgeInsets.fromLTRB(20, 24, 20, 28),
           decoration: const BoxDecoration(
-            color: AppColors.orange, 
+            color: AppColors.orange,
             borderRadius: BorderRadius.only(
               bottomLeft: Radius.circular(32),
               bottomRight: Radius.circular(32),
@@ -49,6 +50,7 @@ class DashboardHeader extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // Bagian Atas: Profil & QR/Person Icon
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -97,23 +99,18 @@ class DashboardHeader extends StatelessWidget {
                     ),
                   ],
                 ),
-                
+
                 const SizedBox(height: 28),
+
+                // Bagian Bawah: Search & Filter/Scan
                 Row(
                   children: [
                     Expanded(
-                      child: Theme(
-                        data: Theme.of(context).copyWith(
-                          inputDecorationTheme: const InputDecorationTheme(
-                            hintStyle: TextStyle(color: AppColors.background),
-                          ),
-                        ),
-                        child: CustomSearchBar(
-                          controller: searchController,
-                          hintText: isAdmin ? 'Cari pesanan kustomer...' : 'Cari burger favoritmu...',
-                          onChanged: onSearchChanged,
-                          onClear: onSearchClear,
-                        ),
+                      child: CustomSearchBar(
+                        controller: searchController,
+                        hintText: isAdmin ? 'Cari pesanan kustomer...' : 'Cari burger favoritmu...',
+                        onChanged: onSearchChanged,
+                        onClear: onSearchClear,
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -127,7 +124,7 @@ class DashboardHeader extends StatelessWidget {
                           borderRadius: BorderRadius.circular(16),
                         ),
                         child: Icon(
-                          isAdmin ? Icons.document_scanner_outlined : Icons.tune_rounded, // Tune_rounded adalah icon slider filter titik 3 melintang
+                          isAdmin ? Icons.document_scanner_outlined : Icons.tune_rounded,
                           color: AppColors.darkRed,
                           size: 22,
                         ),

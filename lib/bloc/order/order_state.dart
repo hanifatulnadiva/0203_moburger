@@ -32,14 +32,14 @@ class OrderWatchSuccess extends OrderState {
     switch (order.status) {
       case 'pending':
         return 1; // Pembayaran Diterima, order belum diproses
-      case 'proses':
+      case 'prosess':
         return 2; // Pesanan Diproses
       case 'siap diambil':
         return 3; // Pesanan Siap Diambil
       case 'selesai':
         return 4; // Pesanan Selesai
       default:
-        return 1;
+        return 2;
     }
   }
 

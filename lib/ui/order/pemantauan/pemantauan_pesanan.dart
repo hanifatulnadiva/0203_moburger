@@ -20,19 +20,33 @@ class OrderTrackingPage extends StatefulWidget {
 }
 
 class _OrderTrackingPageState extends State<OrderTrackingPage> {
-  Future<List<OrderItemWithDetails>>? _itemsFuture;
-  String? _loadedForOrderId;
+  // Variabel untuk menyimpan data agar tidak fetch ulang terus-menerus
+  List<OrderItemWithDetails>? _cachedItems;
+  bool _isLoadingItems = true;
 
   @override
   void initState() {
     super.initState();
+    // 1. Pantau status via Bloc
     context.read<OrderBloc>().add(WatchOrderEvent(orderId: widget.orderNumber));
+    
+    // 2. Fetch detail sekali saja
+    _fetchItems();
   }
 
-  void _ensureItemsLoaded(String orderId) {
-    if (_loadedForOrderId == orderId) return;
-    _loadedForOrderId = orderId;
-    _itemsFuture = OrderRepository().getOrderDetail(orderId);
+  Future<void> _fetchItems() async {
+    try {
+      final items = await OrderRepository().getOrderDetail(widget.orderNumber);
+      if (mounted) {
+        setState(() {
+          _cachedItems = items;
+          _isLoadingItems = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) setState(() => _isLoadingItems = false);
+      print("Error fetching details: $e");
+    }
   }
 
   String _formatPrice(num price) {
@@ -53,6 +67,12 @@ class _OrderTrackingPageState extends State<OrderTrackingPage> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            Navigator.pop(context);
+          },
+        ),
         backgroundColor: AppColors.background,
         elevation: 0,
         foregroundColor: AppColors.textPrimary,
@@ -68,145 +88,50 @@ class _OrderTrackingPageState extends State<OrderTrackingPage> {
             final order = state.order;
             final statusIndex = state.statusIndex;
 
-            _ensureItemsLoaded(order.id);
-
             return ListView(
               padding: const EdgeInsets.all(20),
               children: [
                 _buildMenuCarousel(),
                 const SizedBox(height: 24),
-                const Text(
-                  "Status Pesanan",
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
+                const Text("Status Pesanan", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 12),
-                _buildTimelineTile(
-                  index: 0,
-                  icon: Icons.payments_outlined,
-                  title: 'Menunggu Pembayaran',
-                  description: 'Selesaikan pembayaran agar pesananmu diproses.',
-                  statusIndex: statusIndex,
-                  timestamp: order.createdAt,
-                  isFirst: true,
-                ),
-                _buildTimelineTile(
-                  index: 1,
-                  icon: Icons.check_circle_outline,
-                  title: 'Pembayaran Diterima',
-                  description: 'Pembayaran kamu sudah kami terima.',
-                  statusIndex: statusIndex,
-                  timestamp: order.updateAt,
-                ),
-                _buildTimelineTile(
-                  index: 2,
-                  icon: Icons.outdoor_grill_outlined,
-                  title: 'Pesanan Diproses',
-                  description: 'Koki kami sedang menyiapkan pesananmu.',
-                  statusIndex: statusIndex,
-                  timestamp: order.updateAt,
-                ),
-                _buildTimelineTile(
-                  index: 3,
-                  icon: Icons.shopping_bag_outlined,
-                  title: 'Pesanan Siap Diambil',
-                  description: 'Pesananmu sudah siap, silakan diambil.',
-                  statusIndex: statusIndex,
-                  timestamp: order.updateAt,
-                  extra: statusIndex == 3 ? _buildQrButton(order.order_number) : null,
-                ),
-                _buildTimelineTile(
-                  index: 4,
-                  icon: Icons.emoji_food_beverage_outlined,
-                  title: 'Pesanan Selesai',
-                  description: 'Pesanan telah selesai. Selamat menikmati!',
-                  statusIndex: statusIndex,
-                  timestamp: order.updateAt,
-                  isLast: true,
-                ),
+                
+                _buildTimelineTile(index: 0, icon: Icons.payments_outlined, title: 'Menunggu Pembayaran', description: 'Selesaikan pembayaran.', statusIndex: statusIndex, timestamp: statusIndex == 0 ? order.createdAt : '', isFirst: true),
+                _buildTimelineTile(index: 1, icon: Icons.check_circle_outline, title: 'Pembayaran Diterima', description: 'Pembayaran diterima.', statusIndex: statusIndex, timestamp: statusIndex == 1 ? order.updateAt : ''),
+                _buildTimelineTile(index: 2, icon: Icons.outdoor_grill_outlined, title: 'Pesanan Diproses', description: 'Koki menyiapkan pesanan.', statusIndex: statusIndex, timestamp: statusIndex == 2 ? order.updateAt : ''),
+                _buildTimelineTile(index: 3, icon: Icons.shopping_bag_outlined, title: 'Pesanan Siap Diambil', description: 'Pesanan sudah siap.', statusIndex: statusIndex, timestamp: statusIndex == 3 ? order.updateAt : '', extra: statusIndex == 3 ? _buildQrButton(order.order_number) : null),
+                _buildTimelineTile(index: 4, icon: Icons.emoji_food_beverage_outlined, title: 'Pesanan Selesai', description: 'Selamat menikmati!', statusIndex: statusIndex, timestamp: statusIndex == 4 ? order.updateAt : '', isLast: true),
               ],
             );
           }
-
           if (state is OrderFailure) {
             return Center(child: Text("Error: ${state.errorMessage}"));
           }
-
-          return const SizedBox.shrink();
+          return const Center(child: CircularProgressIndicator(color: AppColors.orange));
         },
       ),
     );
   }
 
-  Widget _buildQrButton(String orderNumber) {
-    return Padding(
-      padding: const EdgeInsets.only(top: 10),
-      child: SizedBox(
-        width: double.infinity,
-        child: ElevatedButton.icon(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.orange,
-            foregroundColor: AppColors.white,
-            padding: const EdgeInsets.symmetric(vertical: 12),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          ),
-          icon: const Icon(Icons.qr_code_rounded, size: 20),
-          label: const Text("Lihat Kode Pengambilan"),
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => OrderQrPage(orderNumber: orderNumber)),
-            );
-          },
+  Widget _buildMenuCarousel() {
+    if (_isLoadingItems) {
+      return const SizedBox(height: 110, child: Center(child: CircularProgressIndicator(color: AppColors.orange)));
+    }
+    if (_cachedItems == null || _cachedItems!.isEmpty) return const SizedBox.shrink();
+
+    final items = _cachedItems!;
+    if (items.length == 1) return _buildMenuItemCard(items.first);
+
+    return SizedBox(
+      height: 130,
+      child: PageView.builder(
+        controller: PageController(viewportFraction: 0.85),
+        itemCount: items.length,
+        itemBuilder: (context, index) => Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 6),
+          child: _buildMenuItemCard(items[index]),
         ),
       ),
-    );
-  }
-
-  Widget _buildMenuCarousel() {
-    if (_itemsFuture == null) {
-      return const SizedBox(
-        height: 110,
-        child: Center(child: CircularProgressIndicator(color: AppColors.orange)),
-      );
-    }
-
-    return FutureBuilder<List<OrderItemWithDetails>>(
-      future: _itemsFuture,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const SizedBox(
-            height: 110,
-            child: Center(child: CircularProgressIndicator(color: AppColors.orange)),
-          );
-        }
-        if (!snapshot.hasData || snapshot.data!.isEmpty) {
-          return const SizedBox.shrink();
-        }
-
-        final items = snapshot.data!;
-
-        if (items.length == 1) {
-          return _buildMenuItemCard(items.first);
-        }
-
-        return SizedBox(
-          height: 130,
-          child: PageView.builder(
-            controller: PageController(viewportFraction: 0.85),
-            itemCount: items.length,
-            itemBuilder: (context, index) {
-              return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 6),
-                child: _buildMenuItemCard(items[index]),
-              );
-            },
-          ),
-        );
-      },
     );
   }
 
@@ -216,22 +141,14 @@ class _OrderTrackingPageState extends State<OrderTrackingPage> {
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(color: AppColors.darkRed.withOpacity(0.06), blurRadius: 10, offset: const Offset(0, 4)),
-        ],
+        boxShadow: [BoxShadow(color: AppColors.darkRed.withOpacity(0.06), blurRadius: 10, offset: const Offset(0, 4))],
       ),
       child: Row(
         children: [
           ClipRRect(
             borderRadius: BorderRadius.circular(12),
             child: item.imageUrl != null
-                ? Image.network(
-                    item.imageUrl!,
-                    width: 64,
-                    height: 64,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => _menuPlaceholderIcon(),
-                  )
+                ? Image.network(item.imageUrl!, width: 64, height: 64, fit: BoxFit.cover, errorBuilder: (_, __, ___) => _menuPlaceholderIcon())
                 : _menuPlaceholderIcon(),
           ),
           const SizedBox(width: 12),
@@ -239,17 +156,8 @@ class _OrderTrackingPageState extends State<OrderTrackingPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  item.menuName,
-                  style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.textPrimary, fontSize: 14),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  '${item.quantity}x  •  ${_formatPrice(item.price)}',
-                  style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
-                ),
+                Text(item.menuName, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14), maxLines: 1, overflow: TextOverflow.ellipsis),
+                Text('${item.quantity}x • ${_formatPrice(item.price)}', style: const TextStyle(fontSize: 12, color: Colors.grey)),
               ],
             ),
           ),
@@ -259,42 +167,36 @@ class _OrderTrackingPageState extends State<OrderTrackingPage> {
   }
 
   Widget _menuPlaceholderIcon() {
-    return Container(
-      width: 64,
-      height: 64,
-      color: AppColors.darkRed.withOpacity(0.08),
-      child: const Icon(Icons.lunch_dining, color: AppColors.darkRed, size: 28),
+    return Container(width: 64, height: 64, color: AppColors.darkRed.withOpacity(0.08), child: const Icon(Icons.lunch_dining, color: AppColors.darkRed, size: 28));
+  }
+
+  Widget _buildQrButton(String orderNumber) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 10),
+      child: SizedBox(
+        width: double.infinity,
+        child: ElevatedButton.icon(
+          style: ElevatedButton.styleFrom(backgroundColor: AppColors.orange, foregroundColor: AppColors.white, padding: const EdgeInsets.symmetric(vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+          icon: const Icon(Icons.qr_code_rounded, size: 20),
+          label: const Text("Lihat Kode Pengambilan"),
+          onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => OrderQrPage(orderNumber: orderNumber))),
+        ),
+      ),
     );
   }
 
   Widget _buildTimelineTile({
-    required int index,
-    required IconData icon,
-    required String title,
-    required String description,
-    required int statusIndex,
-    required String timestamp,
-    Widget? extra,
-    bool isFirst = false,
-    bool isLast = false,
+    required int index, required IconData icon, required String title,
+    required String description, required int statusIndex, required String timestamp,
+    Widget? extra, bool isFirst = false, bool isLast = false,
   }) {
     final bool isDone = index <= statusIndex;
     final Color activeColor = AppColors.orange;
     final Color inactiveColor = Colors.grey.shade300;
 
     return TimelineTile(
-      isFirst: isFirst,
-      isLast: isLast,
-      indicatorStyle: IndicatorStyle(
-        width: 32,
-        height: 32,
-        color: isDone ? activeColor : inactiveColor,
-        iconStyle: IconStyle(
-          iconData: icon,
-          color: isDone ? AppColors.white : Colors.grey.shade500,
-          fontSize: 16,
-        ),
-      ),
+      isFirst: isFirst, isLast: isLast,
+      indicatorStyle: IndicatorStyle(width: 32, height: 32, color: isDone ? activeColor : inactiveColor, iconStyle: IconStyle(iconData: icon, color: isDone ? AppColors.white : Colors.grey.shade500, fontSize: 16)),
       beforeLineStyle: LineStyle(color: isDone ? activeColor : inactiveColor, thickness: 3),
       afterLineStyle: LineStyle(color: isDone ? activeColor : inactiveColor, thickness: 3),
       endChild: Padding(
@@ -302,25 +204,11 @@ class _OrderTrackingPageState extends State<OrderTrackingPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              title,
-              style: TextStyle(
-                fontWeight: index == statusIndex ? FontWeight.bold : FontWeight.w600,
-                color: AppColors.textPrimary,
-                fontSize: 14,
-              ),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              description,
-              style: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
-            ),
-            if (index == statusIndex) ...[
+            Text(title, style: TextStyle(fontWeight: index == statusIndex ? FontWeight.bold : FontWeight.w600, fontSize: 14)),
+            Text(description, style: const TextStyle(fontSize: 12, color: Colors.grey)),
+            if (timestamp.isNotEmpty) ...[
               const SizedBox(height: 4),
-              Text(
-                _formatDateTime(timestamp),
-                style: const TextStyle(fontSize: 11, color: AppColors.orange, fontWeight: FontWeight.w600),
-              ),
+              Text(_formatDateTime(timestamp), style: const TextStyle(fontSize: 11, color: AppColors.orange, fontWeight: FontWeight.w600)),
             ],
             if (extra != null) extra,
           ],

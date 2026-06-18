@@ -23,7 +23,6 @@ class MenuRepository {
       }
       final response = await query
       .order('created_at',ascending: false).range(from, to);
-      // final List<dynamic> response = await query;
       return response.map((item)=> MenuModel.fromJson(item)).toList();
     }catch(e){
       throw Exception('Gagal mengambil data menu: $e');

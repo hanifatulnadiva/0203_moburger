@@ -16,16 +16,22 @@ class OrderBloc extends Bloc<OrderEvent, OrderState> {
     on<LoadUserOrderHistoryEvent>(_onLoadUserOrderHistory);
     on<LoadAdminOrderHistoryEvent>(_onLoadAdminOrderHistory);
     on<LoadOrderDetailEvent>(_onLoadOrderDetail);
+on<SearchOrderRequested>(_onSearchOrder);
   }
 
   Future<void> _onCreateOrder(CreateOrderEvent event, Emitter<OrderState> emit) async {
     emit(OrderLoading());
     try {
-      final userId = _orderRepository.currentUserId;
-      if (userId == null) {
-        emit(OrderFailure('Sesi login tidak ditemukan.'));
-        return;
-      }
+      // 1. Tambahkan pengecekan eksplisit
+    final userId = _orderRepository.currentUserId;
+    
+    // Debugging untuk memastikan apa isinya
+    print("DEBUG - OrderBloc: userId yang didapat adalah: $userId");
+
+    if (userId == null || userId == 'undefined' || userId.isEmpty) {
+      emit(OrderFailure('Sesi login tidak valid. Silakan login kembali.'));
+      return;
+    }
 
       final orderNumber = await _orderRepository.createOrderTransaction(
         userId: userId,
@@ -103,6 +109,18 @@ class OrderBloc extends Bloc<OrderEvent, OrderState> {
       emit(OrderDetailLoadSuccess(items: items));
     } catch (e) {
       emit(OrderFailure('Gagal mengambil detail pesanan: $e'));
+    }
+  }
+  // Tambahkan event handler
+
+  Future<void> _onSearchOrder(SearchOrderRequested event, Emitter<OrderState> emit) async {
+    emit(OrderLoading());
+    try {
+      // Panggil fungsi search di Repository
+      final orders = await _orderRepository.searchOrders(event.query);
+      emit(OrderHistoryLoadSuccess(orders)); 
+    } catch (e) {
+      emit(OrderFailure('Gagal mencari pesanan: $e'));
     }
   }
 }

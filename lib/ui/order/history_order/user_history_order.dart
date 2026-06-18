@@ -10,7 +10,10 @@ import 'package:moburger/core/widget/custom_button.dart';
 import 'package:moburger/core/widget/custom_card.dart';
 import 'package:moburger/core/widget/empty_state_widget.dart';
 import 'package:moburger/data/models/order_model.dart';
+import 'package:moburger/ui/dashboard/customer_home_page.dart';
 import 'package:moburger/ui/order/order_detail/detail_order.dart';
+import 'package:moburger/ui/order/order_detail/midtrans_webview_page.dart';
+import 'package:moburger/ui/order/pemantauan/pemantauan_pesanan.dart';
 
 class UserOrderHistoryScreen extends StatefulWidget {
   const UserOrderHistoryScreen({super.key});
@@ -27,6 +30,10 @@ class _UserOrderHistoryScreenState extends State<UserOrderHistoryScreen>
   @override
   void initState() {
     super.initState();
+    final currentState = context.read<OrderBloc>().state;
+    if (currentState is! OrderHistoryLoadSuccess) {
+      context.read<OrderBloc>().add(LoadUserOrderHistoryEvent());
+    }
     final state = context.read<OrderBloc>().state;
     if (state is! OrderHistoryLoadSuccess) {
       context.read<OrderBloc>().add(LoadUserOrderHistoryEvent());
@@ -43,11 +50,22 @@ class _UserOrderHistoryScreenState extends State<UserOrderHistoryScreen>
       context.read<OrderBloc>().add(LoadUserOrderHistoryEvent());
     }
   }
+  Future<void> _navigateToTracking(OrderModel order) async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => OrderTrackingPage(orderNumber: order.order_number),
+      ),
+    );
+    
+    if (mounted) {
+      context.read<OrderBloc>().add(LoadUserOrderHistoryEvent());
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    // FIX: Length set to 4 to match the 4 tabs and 4 body views
     return DefaultTabController(
       length: 4, 
       child: Scaffold(
@@ -78,8 +96,7 @@ class _UserOrderHistoryScreenState extends State<UserOrderHistoryScreen>
               final all = state.orders;
               return TabBarView(children: [
                 _buildTabContent(all),
-                // Combined pending and diprosess for "Dalam Proses"
-                _buildTabContent(all.where((o) => o.status == 'pending' || o.status == 'diprosess').toList()),
+                _buildTabContent(all.where((o) => o.status == 'diprosess').toList()),
                 _buildTabContent(all.where((o) => o.status == 'siap diambil').toList()),
                 _buildTabContent(all.where((o) => o.status == 'selesai').toList()),
               ]);
@@ -116,13 +133,31 @@ class _UserOrderHistoryScreenState extends State<UserOrderHistoryScreen>
   }
 
   Widget _buildHistoryCard(OrderModel order) {
-    bool isSelesai = order.status == 'selesai';
-    bool isPending = order.payment_status == 'pending';
-    String date = DateFormat('dd MMM, HH:mm').format(DateTime.parse(order.createdAt));
-
-    String statusLabel = isPending ? "Menunggu Pembayaran" : (isSelesai ? "Selesai" : "Diproses");
-    Color badgeColor = isPending ? AppColors.info : (isSelesai ? AppColors.success : AppColors.warning);
-
+    final String status = (order.status ?? '').toLowerCase();
+    final bool isSelesai = status == 'selesai';
+    final bool isPending = (order.payment_status ?? '').toLowerCase() == 'pending';
+    final String date = DateFormat('dd MMM, HH:mm').format(DateTime.parse(order.createdAt));
+    
+    // Logika Badge yang lebih akurat
+    String statusLabel = "Diproses"; // Default
+    if (status == 'siap diambil') {
+      statusLabel = "Siap Diambil";
+    } else if (status == 'selesai') {
+      statusLabel = "Selesai";
+    } else if (order.payment_status == 'pending') {
+      statusLabel = "Menunggu Pembayaran";
+    }
+    Color badgeColor = AppColors.warning; // Mendefinisikan badgeColor
+    if (isPending) {
+      statusLabel = "Menunggu Pembayaran";
+      badgeColor = AppColors.info;
+    } else if (status == 'siap diambil') {
+      statusLabel = "Siap Diambil";
+      badgeColor = AppColors.orange;
+    } else if (isSelesai) {
+      statusLabel = "Selesai";
+      badgeColor = AppColors.success;
+    }
     return CustomCard(
       badgeText: statusLabel,
       badgeColor: badgeColor,
@@ -146,7 +181,6 @@ class _UserOrderHistoryScreenState extends State<UserOrderHistoryScreen>
               // FIX: Wrapped in Expanded to prevent overflow
               Expanded(
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       order.nama_customer ?? 'Pelanggan',
@@ -188,7 +222,23 @@ class _UserOrderHistoryScreenState extends State<UserOrderHistoryScreen>
       textColor: isPending || isSelesai ? AppColors.white : AppColors.orange,
       borderRadius: 20,
       onPressed: () {
-        // Logic navigation
+        if (isPending) {
+          Navigator.push(context, MaterialPageRoute(builder: (_) => MidtransWebViewPage(
+              paymentUrl: order.snap_token ?? '',
+              orderNumber: order.order_number,
+          )));
+          
+        } else if (isSelesai) {
+          Navigator.push(
+            context, 
+            MaterialPageRoute(builder: (_) => const CustomerDashboardScreen(userRole: 'customer'))
+          );
+          if (mounted) {
+            context.read<OrderBloc>().add(LoadUserOrderHistoryEvent());
+          }
+        } else {
+          _navigateToTracking(order);
+        }
       },
     );
   }

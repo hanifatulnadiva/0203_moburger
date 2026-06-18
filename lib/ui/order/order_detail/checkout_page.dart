@@ -7,6 +7,7 @@ import 'package:moburger/core/widget/custom_button.dart';
 import 'package:moburger/core/widget/widget_cart_item.dart'; // Pastikan path benar
 import 'package:moburger/ui/order/order_detail/midtrans_webview_page.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:moburger/bloc/cart/cart_event.dart';
 
 class CheckoutScreen extends StatefulWidget {
   final int totalPrice;
@@ -55,21 +56,43 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         },
       );
 
-      if (response.status != 200) throw Exception(response.data['error'] ?? 'Gagal membuat transaksi');
+      // 1. Tambahkan Debugging untuk melihat isi respon
+      print("DEBUG RES: ${response.data}");
 
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => MidtransWebViewPage(
-            paymentUrl: response.data['redirect_url'],
-            orderNumber: response.data['order_number'],
+      if (response.status != 200) {
+        throw Exception(response.data['error'] ?? 'Gagal membuat transaksi');
+      }
+
+      final String? redirectUrl = response.data['redirect_url'];
+      final String? orderNumber = response.data['order_number'];
+
+      if (redirectUrl == null || !redirectUrl.startsWith('http')) {
+        throw Exception('URL Pembayaran tidak valid dari server!');
+      }
+
+      if (mounted) {
+        context.read<CartBloc>().add(ClearCart());
+      }
+
+      if (mounted) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => MidtransWebViewPage(
+              paymentUrl: redirectUrl, 
+              orderNumber: orderNumber ?? 'UNKNOWN',
+            ),
           ),
-        ),
-      );
+        );
+      }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+      }
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 

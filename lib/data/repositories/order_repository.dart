@@ -10,13 +10,7 @@ class OrderRepository {
 
   String? get currentUserId => _supabase.auth.currentUser?.id;
 
-  // ==========================================
-  // 1. FITUR FITUR PEMESANAN (USER & ADMIN)
-  // ==========================================
-
-  /// Membuat Order Pembayaran Baru (Mendukung pesanan via User atau Admin/Kasir)
   /// Membuat Order dengan memanggil SQL Function 'create_order_transaction'
-  /// yang sudah kita buat sebelumnya di Supabase SQL Editor.
   Future<String> createOrderTransaction({
     required String userId,
     required int totalPrice,
@@ -26,40 +20,80 @@ class OrderRepository {
     required String notes,
     required String snapToken
   }) async {
+    // 1. MEKANISME PEMBERSIHAN DATA (PENTING UNTUK MENCEGAH 'undefined')
+    final String cleanUserId = (userId == 'undefined' || userId.isEmpty) 
+        ? (_supabase.auth.currentUser?.id ?? '') 
+        : userId;
+
+    if (cleanUserId.isEmpty) {
+      throw Exception('Gagal membuat pesanan: User ID tidak ditemukan atau tidak valid.');
+    }
+
+    print("DEBUG: Mengirim RPC ke Supabase dengan UserID: $cleanUserId");
+
     try {
-      // 1. Panggil SQL Function.
-      // Supabase akan mengembalikan UUID dalam bentuk String.
-      final String orderUuid = await _supabase.rpc('create_order_transaction', params: {
-        'p_user_id': userId,
+      // 2. Panggil SQL Function
+      final dynamic orderUuid = await _supabase.rpc('create_order_transaction', params: {
+        'p_user_id': cleanUserId,
         'p_total_price': totalPrice,
         'p_nama_customer': namaCustomer,
         'p_order_type': orderType,
         'p_items': items,
-        'p_notes': notes,        // Jangan lupa kirim ini
+        'p_notes': notes,
         'p_snap_token': snapToken
       });
-      print("DEBUG: UUID yang didapat dari database: $orderUuid");
 
-      // 2. Sekarang kita punya UUID internal.
-      // Jika Anda butuh order_number-nya, Anda bisa melakukan query
-      // sekali lagi menggunakan UUID tersebut:
+      print("DEBUG: UUID sukses didapat: $orderUuid");
+
+      // 3. Ambil nomor order berdasarkan UUID
       final data = await _supabase
           .from('order')
           .select('order_number')
           .eq('id', orderUuid)
           .single();
 
-      return data['order_number'] as String; // Kembalikan order_number ke UI
+      return data['order_number'] as String;
     } catch (e) {
+      print("DEBUG: Error RPC Detail: $e");
       throw Exception('Gagal membuat transaksi order: $e');
     }
   }
 
-  // ==========================================
-  // 2. FITUR PEMANTAUAN REALTIME (UNTUK USER)
-  // ==========================================
+  /// Membuat Order Offline (Langsung masuk ke sistem admin tanpa user_id)
+  Future<String> createOfflineOrder({
+    required int totalPrice,
+    required String namaCustomer,
+    required List<Map<String, dynamic>> items,
+    required String notes,
+  }) async {
+    try {
+      // Memanggil SQL Function yang sama, namun dengan parameter user_id null
+      // Pastikan SQL Function 'create_order_transaction' di Supabase 
+      // mengizinkan p_user_id bernilai NULL.
+      final dynamic orderUuid = await _supabase.rpc('create_order_transaction', params: {
+        'p_user_id': null, // Null = Offline/Kasir
+        'p_total_price': totalPrice,
+        'p_nama_customer': namaCustomer,
+        'p_order_type': 'offline',
+        'p_items': items,
+        'p_notes': notes,
+        'p_snap_token': 'CASH_PAYMENT' // Marker untuk pembayaran tunai
+      });
 
-  /// Stream Realtime untuk memantau status satu pesanan tertentu milik user.
+      final data = await _supabase
+          .from('order')
+          .select('order_number')
+          .eq('id', orderUuid)
+          .single();
+
+      return data['order_number'] as String;
+    } catch (e) {
+      print("DEBUG ERROR: $e");
+      throw Exception('Gagal membuat pesanan offline: $e');
+    }
+  }
+
+  /// Stream Realtime untuk memantau status pesanan
   Stream<OrderModel?> streamOrderById(String orderNumber) {
     return _supabase
         .from('order')
@@ -72,29 +106,31 @@ class OrderRepository {
           return null;
         });
   }
+  Future<List<OrderModel>> searchOrders(String query) async {
+    final response = await _supabase
+        .from('order')
+        .select('*, order_item(*, menu(*))')
+        .ilike('nama_customer', '%$query%') // ILIKE untuk pencarian tidak peka huruf besar/kecil
+        .order('created_at', ascending: false);
+    return (response as List<dynamic>).map((json) => OrderModel.fromJson(json)).toList();
+  }
 
+  /// Update status pesanan
   Future<void> updateOrderStatus({
     required String orderId,
     required String status,
   }) async {
-    print("Attempting to update Supabase: order_number=$orderId, status=$status");
     try {
-      final response = await _supabase
+      await _supabase
           .from('order')
           .update({'status': status})
-          .eq('id', orderId)
-          .select();
-      print("Supabase update response: $response");
+          .eq('id', orderId);
     } catch (e) {
       throw Exception('Gagal memperbarui status pesanan: $e');
     }
   }
 
-  // ==========================================
-  // 4. FITUR RIWAYAT / HISTORY PESANAN
-  // ==========================================
-
-  /// [ROLE: USER] Mengambil semua riwayat pesanan milik USER yang sedang login saat ini.
+  /// Ambil riwayat pesanan USER
   Future<List<OrderModel>> getUserOrderHistory() async {
     try {
       final userId = _supabase.auth.currentUser?.id;
@@ -110,28 +146,57 @@ class OrderRepository {
           .map((json) => OrderModel.fromJson(json))
           .toList();
     } catch (e) {
-      throw Exception('Gagal mengambil history pesanan user: $e');
+      throw Exception('Gagal mengambil history pesanan: $e');
     }
   }
 
-  /// [ROLE: ADMIN] Mengambil SEMUA riwayat pesanan tanpa pemaksaan join skema
+  /// Ambil riwayat pesanan ADMIN
   Future<List<OrderModel>> getAllUserOrderHistoryForAdmin() async {
     try {
       final response = await _supabase
           .from('order')
-          .select('*')
+          .select('''
+            *,
+            users(nama_lengkap),
+            order_item(
+              id,
+              quantity,
+              subtotal,
+              menu(nama_menu, harga, image_url),
+              order_item_topping(
+                topping(nama_topping)
+              )
+            )
+          ''')
           .order('created_at', ascending: false);
 
-      final List<dynamic> data = response as List<dynamic>;
-
-      return data.map((json) => OrderModel.fromJson(json)).toList();
+      return (response as List<dynamic>)
+          .map((json) => OrderModel.fromJson(json as Map<String, dynamic>))
+          .toList();
     } catch (e) {
-      throw Exception('Gagal mengambil seluruh history pesanan (Admin): $e');
+      throw Exception('Gagal mengambil seluruh history pesanan: $e');
     }
   }
-
-  Future<List<OrderItemWithDetails>> getOrderDetail(String orderId) async {
+  /// Ambil detail order
+  Future<List<OrderItemWithDetails>> getOrderDetail(String identifier) async {
     try {
+      String orderId = "";
+      if (identifier.length == 36 && identifier.contains('-')) {
+        orderId = identifier;
+      } else {
+        final orderData = await _supabase
+            .from('order')
+            .select('id')
+            .eq('order_number', identifier) // Cari UUID berdasarkan order_number
+            .maybeSingle();
+
+        if (orderData == null) {
+          throw Exception('Pesanan dengan nomor $identifier tidak ditemukan.');
+        }
+        orderId = orderData['id'];
+      }
+
+      // 2. Ambil detail item menggunakan orderId (UUID) yang sudah pasti benar
       final response = await _supabase
           .from('order_item')
           .select('''
@@ -145,14 +210,12 @@ class OrderRepository {
           ''')
           .eq('order_id', orderId);
 
-      final List<dynamic> data = response as List<dynamic>;
-
-      return data
+      return (response as List<dynamic>)
           .map((item) => OrderItemWithDetails.fromJson(item as Map<String, dynamic>))
           .toList();
     } catch (e) {
-      print("Error di Repository: $e");
-      throw e;
+      print("DEBUG ERROR: $e");
+      throw Exception('Gagal mengambil detail pesanan: $e');
     }
   }
 }

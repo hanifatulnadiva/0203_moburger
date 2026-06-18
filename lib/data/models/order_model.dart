@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import 'package:moburger/data/models/order_item_details_model.dart';
 
 class OrderModel extends Equatable{
   final String id;
@@ -15,7 +16,7 @@ class OrderModel extends Equatable{
   final String? notes;
   final String createdAt;
   final String updateAt;
-  final List<Map<String, dynamic>>? items;
+  final List<OrderItemWithDetails>? items;
 
   const OrderModel({
     required this.id,
@@ -32,7 +33,7 @@ class OrderModel extends Equatable{
     this.transaction_id,
     this.snap_token,
     this.notes,
-    this.items
+    this.items,
     
   });
   factory OrderModel.fromJson(Map<String,dynamic> json){
@@ -60,8 +61,10 @@ class OrderModel extends Equatable{
       notes: json['notes'],
       createdAt: json['created_at']?.toString() ?? DateTime.now().toIso8601String(),
       updateAt: json['update_at']?.toString() ?? DateTime.now().toIso8601String(),
-      items: json['order_item'] != null 
-          ? List<Map<String, dynamic>>.from(json['order_item']) 
+      items: json['order_item'] != null
+          ? (json['order_item'] as List)
+              .map((i) => OrderItemWithDetails.fromJson(i as Map<String, dynamic>))
+              .toList()
           : null,
     );
   }

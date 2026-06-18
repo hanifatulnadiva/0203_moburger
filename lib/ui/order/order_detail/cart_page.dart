@@ -27,6 +27,42 @@ class _CartScreenState extends State<CartScreen> {
     return price.toString().replaceAllMapped(RegExp(r'(\d)(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.');
   }
 
+  void _navigateToCheckout(BuildContext context, String nama, int total, List<Map<String, dynamic>> items) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => CheckoutScreen(
+          totalPrice: total,
+          items: items,
+          namaCustomer: nama,
+        ),
+      ),
+    );
+  }
+  void _showAdminInputDialog(BuildContext context, int total, List<Map<String, dynamic>> items) {
+    TextEditingController controller = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Nama Pelanggan"),
+        content: TextField(
+          controller: controller,
+          decoration: const InputDecoration(hintText: "Masukkan nama customer"),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Batal")),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _navigateToCheckout(context, controller.text.isNotEmpty ? controller.text : "Pelanggan", total, items);
+            },
+            child: const Text("Lanjut"),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -112,20 +148,29 @@ class _CartScreenState extends State<CartScreen> {
                   text: 'Pesan Sekarang',
                   backgroundColor: AppColors.orange,
                   isLoading: state is OrderLoading,
-                  onPressed: () {
+                  onPressed: ()async {
                     final user = Supabase.instance.client.auth.currentUser;
-                    final String nama = user?.userMetadata?['nama_lengkap'] ?? 'Pelanggan';
+                    if (user == null) {
+                      _navigateToCheckout(context, "Pelanggan", totalPrice, items);
+                      return;
+                    }
+                    try{
+                      final userData = await Supabase.instance.client
+                        .from('users')
+                        .select('nama_lengkap, role')
+                        .eq('id',user.id)
+                        .single(); 
+                      final String role = userData['role'] ?? 'user';
+                      final String namaDariDb = userData['nama_lengkap'] ?? 'Pelanggan';
 
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => CheckoutScreen(
-                          totalPrice: totalPrice,
-                          items: items,
-                          namaCustomer: nama, // Nama otomatis dari profil
-                        ),
-                      ),
-                    );
+                      if (role == 'admin') {
+                        _showAdminInputDialog(context, totalPrice, items);
+                      } else {
+                        _navigateToCheckout(context, namaDariDb, totalPrice, items);
+                      }
+                    } catch (e) {
+                      _navigateToCheckout(context, "Pelanggan", totalPrice, items);
+                    }
                   },
                 );
               },

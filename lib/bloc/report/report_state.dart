@@ -1,22 +1,40 @@
 part of 'report_bloc.dart';
 
-sealed class ReportState extends Equatable {
+abstract class ReportState extends Equatable {
   const ReportState();
-  
+
   @override
-  List<Object> get props => [];
+  List<Object?> get props => [];
 }
 
-final class ReportInitial extends ReportState {}
+class ReportInitial extends ReportState {}
+
 class ReportLoading extends ReportState {}
+
 class ReportLoaded extends ReportState {
-  final ReportModel data;
-  ReportLoaded(this.data);
+  final ReportModel summary;
+
+  final ReportModel trend;
+
+  final DateTimeRange activeRange;
+
+  final bool isDefaultView;
+
+  const ReportLoaded({
+    required this.summary,
+    required this.trend,
+    required this.activeRange,
+    required this.isDefaultView,
+  });
+
+  @override
+  List<Object?> get props => [summary, trend, activeRange, isDefaultView];
 }
-final class ReportError extends ReportState {
+
+class ReportError extends ReportState {
   final String message;
   const ReportError(this.message);
 
   @override
-  List<Object> get props => [message];
+  List<Object?> get props => [message];
 }

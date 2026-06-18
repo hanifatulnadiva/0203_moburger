@@ -29,19 +29,29 @@ class _AdminMenuScreenState extends State<AdminMenuScreen> {
   String _selectedCategory = 'Semua';
   String _searchQuery = '';
 
-  final List<String> _categories = ['Semua', 'makanan', 'minuman', 'snack'];
 
+  final List<String> _categories = ['Semua', 'makanan', 'minuman', 'snack'];
+  final ScrollController _scrollController = ScrollController();
   @override
   void initState() {
     super.initState();
     context.read<MenuBloc>().add(FetchMenu());
+    _scrollController.addListener(_onScroll); // Tambahkan ini
     _searchController.addListener(() {
       setState(() => _searchQuery = _searchController.text);
     });
   }
+  void _onScroll() {
+    // Jika mendekati bawah (200px), panggil LoadMoreMenu
+    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
+      context.read<MenuBloc>().add(LoadMoreMenu());
+    }
+  }
 
   @override
   void dispose() {
+    _scrollController.removeListener(_onScroll); // Hapus listener
+    _scrollController.dispose();
     _searchController.dispose();
     super.dispose();
   }
@@ -208,9 +218,18 @@ class _AdminMenuScreenState extends State<AdminMenuScreen> {
 
   Widget _buildAdminListView(List<MenuModel> filteredMenus) {
     return ListView.builder(
+      controller: _scrollController,
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 100),
-      itemCount: filteredMenus.length,
+      itemCount: filteredMenus.length+1,
       itemBuilder: (context, index) {
+        if (index == filteredMenus.length) {
+        return const Center(
+          child: Padding(
+            padding: EdgeInsets.all(16.0),
+            child: CircularProgressIndicator(color: AppColors.orange),
+          ),
+        );
+      }
         final item = filteredMenus[index];
         final bool isAvailable = item.tersedia;
         return Card(

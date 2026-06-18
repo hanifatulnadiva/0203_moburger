@@ -29,19 +29,30 @@ class CustomerMenuScreen extends StatefulWidget {
 
 class _CustomerMenuScreenState extends State<CustomerMenuScreen> {
   final TextEditingController _searchController = TextEditingController();
-  String _selectedCategory = 'Semua';
+  
   String _searchQuery = '';
+  final ScrollController _scrollController = ScrollController();
 
   final List<String> _categories = ['Semua', 'makanan', 'minuman', 'snack'];
+  String _selectedCategory = 'Semua';
 
   @override
   void initState() {
     super.initState();
     context.read<MenuBloc>().add(FetchMenu());
     context.read<ToppingBloc>().add(FetchTopping());
+    _scrollController.addListener(_onScroll);
     _searchController.addListener(() {
       setState(() => _searchQuery = _searchController.text);
     });
+  }
+  void _onScroll() {
+    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
+      final menuState = context.read<MenuBloc>().state;
+      if (menuState is MenuSuccess && !menuState.hasReachedMax) {
+        context.read<MenuBloc>().add(LoadMoreMenu());
+      }
+    }
   }
 
   @override
@@ -359,10 +370,7 @@ class _CustomerMenuScreenState extends State<CustomerMenuScreen> {
       appBar: AppBar(
         backgroundColor: AppColors.background,
         elevation: 0,
-        title: const Text(
-          'Mau makan apa hari ini?',
-          style: AppTextStyles.judul,
-        ),
+        title: const Text('Mau makan apa hari ini?', style: AppTextStyles.judul),
         actions: [
           IconButton(
             icon: const Icon(Icons.refresh_rounded, color: AppColors.orange),
@@ -370,71 +378,76 @@ class _CustomerMenuScreenState extends State<CustomerMenuScreen> {
           ),
         ],
       ),
+      floatingActionButton: BlocBuilder<CartBloc, CartState>(
+        builder: (context, state) {
+          if (state is CartLoaded && state.cartItems.isNotEmpty) {
+            final totalQty = state.cartItems.fold(0, (sum, item) => sum + (item['qty'] as int));
+            return FloatingActionButton(
+              backgroundColor: AppColors.orange,
+              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CartScreen())),
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  const Icon(Icons.shopping_cart, color: Colors.white),
+                  Positioned(
+                    right: 4,
+                    top: 4,
+                    child: CircleAvatar(
+                      radius: 8,
+                      backgroundColor: Colors.red,
+                      child: Text('$totalQty', style: const TextStyle(fontSize: 9, color: Colors.white)),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }
+          return const SizedBox.shrink();
+        },
+      ),
       body: BlocBuilder<MenuBloc, MenuState>(
         builder: (context, menuState) {
           if (menuState is MenuLoading) {
             return const AppLoadingWidget(message: 'Memuat data menu...');
           }
-          List<MenuModel> currentMenu = [];
-          if (menuState is MenuSuccess) currentMenu = menuState.menu;
+          List<MenuModel> currentMenu =(menuState is MenuSuccess) ? menuState.menu : [];
           final filteredList = _getFilteredMenus(currentMenu);
 
           return BlocBuilder<CartBloc, CartState>(
             builder: (context, cartState) {
-              List<Map<String, dynamic>> globalCartItems = [];
-              if (cartState is CartLoaded) {
-                globalCartItems = cartState.cartItems;
-              }
+              final globalCartItems = (cartState is CartLoaded) ? cartState.cartItems : <Map<String, dynamic>>[];
 
-              return Stack(
+              return Column(
                 children: [
-                  RefreshIndicator(
-                    onRefresh: () async =>
-                        context.read<MenuBloc>().add(FetchMenu()),
-                    color: AppColors.orange,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const SizedBox(height: 12),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                          child: CustomSearchBar(
-                            controller: _searchController,
-                            hintText: 'Cari burger favoritmu...',
-                            onChanged: (val) => setState(() {}),
-                            onClear: () {
-                              _searchController.clear();
-                              setState(() {});
-                            },
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        KategoriFilter(
-                          categories: _categories,
-                          selectedCategory: _selectedCategory,
-                          onSelected: (category) {
-                            setState(() {
-                              _selectedCategory = category;
-                            });
-                          },
-                        ),
-                        const SizedBox(height: 12),
-                        Expanded(
-                          child: filteredList.isEmpty
-                              ? const EmptyStateWidget(
-                                  icon: Icons.fastfood_rounded,
-                                  title: 'Menu Tidak Ditemukan',
-                                  description:
-                                      'Yah, menu tidak ada. Coba cari yang lain ya!',
-                                )
-                              : _buildUserGridView(
-                                  filteredList,
-                                  globalCartItems,
-                                ),
-                        ),
-                      ],
+                  Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: CustomSearchBar(
+                      controller: _searchController,
+                      hintText: 'Cari burger favoritmu...',
+                      onChanged: (val) => setState(() {}),
+                      onClear: () { _searchController.clear(); setState(() {}); },
                     ),
                   ),
+                  const SizedBox(height: 12),
+                  KategoriFilter(
+                    categories: _categories,
+                    selectedCategory: _selectedCategory,
+                    onSelected: (cat) => setState(() => _selectedCategory = cat),
+                  ),
+                  const SizedBox(height: 12),
+                  Expanded(
+                    child: filteredList.isEmpty
+                    ? const EmptyStateWidget(
+                        icon: Icons.fastfood_rounded,
+                        title: 'Menu Tidak Ditemukan',
+                        description:
+                            'Yah, menu tidak ada. Coba cari yang lain ya!',
+                      )
+                    : _buildUserGridView(
+                        filteredList,
+                        globalCartItems,menuState
+                      ),
+                    )
                 ],
               );
             },
@@ -444,11 +457,10 @@ class _CustomerMenuScreenState extends State<CustomerMenuScreen> {
     );
   }
 
-  Widget _buildUserGridView(
-    List<MenuModel> filteredMenus,
-    List<Map<String, dynamic>> cartItems,
-  ) {
+  Widget _buildUserGridView(List<MenuModel> filteredMenus,List<Map<String, dynamic>> cartItems, MenuState state) {
+    final bool hasReachedMax = (state is MenuSuccess) ? state.hasReachedMax : false;
     return GridView.builder(
+      controller: _scrollController,
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 100),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,
@@ -456,8 +468,11 @@ class _CustomerMenuScreenState extends State<CustomerMenuScreen> {
         crossAxisSpacing: 14,
         mainAxisSpacing: 14,
       ),
-      itemCount: filteredMenus.length,
+      itemCount: hasReachedMax ? filteredMenus.length : filteredMenus.length + 1,
       itemBuilder: (context, index) {
+        if(index>= filteredMenus.length){
+          return const Center(child: CircularProgressIndicator(color: AppColors.orange,));
+        }
         final item = filteredMenus[index];
         final String menuId = item.id.toString();
         final bool isAvailable = item.tersedia ?? true;

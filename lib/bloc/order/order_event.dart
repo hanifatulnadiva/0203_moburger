@@ -63,3 +63,7 @@ class LoadOrderDetailEvent extends OrderEvent {
   @override
   List<Object?> get props => [orderId];
 }
+class SearchOrderRequested extends OrderEvent {
+  final String query;
+  SearchOrderRequested(this.query);
+}

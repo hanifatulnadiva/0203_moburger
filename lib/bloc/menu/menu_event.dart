@@ -35,4 +35,11 @@ class DeleteMenu extends MenuEvent{
   @override
   List<Object> get props=>[id];
 }
+class SearchMenuRequested extends MenuEvent {
+  final String query;
+  SearchMenuRequested(this.query);
+}
+
+class LoadMoreMenu extends MenuEvent {}
+class RefreshMenu extends MenuEvent {}
 
