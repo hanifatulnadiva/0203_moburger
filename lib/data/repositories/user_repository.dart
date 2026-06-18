@@ -20,21 +20,12 @@ class AuthRepository {
         data: {
           'nama_lengkap': nama_lengkap,
           'nohp': nohp,
-          'role': 'customer',
         },
       );
 
       if (response.user == null) {
         throw const AuthException('Registrasi gagal, user kosong.');
       }
-      await _supabase.from('users').insert({
-        'id': response.user!.id,
-        'nama_lengkap': nama_lengkap,
-        'email': email.trim(),
-        'nohp': nohp,
-        'role': 'customer',
-      });
-
       return await _fetchUserFromTable(response.user!.id, email.trim());
     } on AuthException catch (e) {
       throw Exception(e.message);

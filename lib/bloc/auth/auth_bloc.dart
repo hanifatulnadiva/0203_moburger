@@ -50,22 +50,29 @@ class AuthBloc extends Bloc<AuthEvent, AuthState>{
       }
     });
 
-    on<RegisterRequested>((event,emit)async{
-      emit(AuthLoading());
-      try{
-        await repository.register(
-          email: event.email,
-          password: event.password,
-          nama_lengkap: event.nama_lengkap,
-          nohp: event.nohp, 
-        );
-        emit(Unauthenticated());
-        developer.log('Register sukses', name:'AuthBloc');
-      }catch(e){
-        emit(AuthError(e.toString()));
-        developer.log('Register Error:$e', name:'AuthBloc');
-      }
-    });
+    on<RegisterRequested>((event, emit) async {
+  emit(AuthLoading());
+  try {
+    // 1. Panggil fungsi register dari repository
+    final user = await repository.register(
+      email: event.email,
+      password: event.password,
+      nama_lengkap: event.nama_lengkap,
+      nohp: event.nohp, 
+    );
+    
+    // 2. Emit Authenticated agar user langsung masuk ke Dashboard 
+    // ATAU buat state baru seperti RegisterSuccess
+    emit(Authenticated(user)); 
+    developer.log('Register sukses dan user otomatis login', name: 'AuthBloc');
+    
+  } catch (e) {
+    // 3. Bersihkan pesan error dari "Exception: "
+    String errorMessage = e.toString().replaceAll("Exception: ", "");
+    emit(AuthError(errorMessage));
+    developer.log('Register Error: $errorMessage', name: 'AuthBloc');
+  }
+});
 
     // Di AuthBloc
     on<LogoutRequested>((event, emit) async {

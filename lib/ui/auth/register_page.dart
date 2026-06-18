@@ -45,17 +45,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
       backgroundColor: AppColors.background,
       body: BlocListener<AuthBloc, AuthState>(
         listener: (context, state) {
-          if (state is Unauthenticated) {
+          // Sesuaikan 'Authenticated' dengan state sukses di AuthBloc Anda
+          if (state is Authenticated) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
-                content: Text('Registrasi Berhasil! Silakan masuk dengan akun Anda.'),
+                content: Text('Registrasi Berhasil!'),
                 backgroundColor: AppColors.success,
               ),
             );
-            Navigator.pop(context);
-          }
-          
-          if (state is AuthError) {
+            Navigator.pop(context); // Kembali ke Login
+          } else if (state is AuthError) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(state.message),
@@ -71,29 +70,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ClipPath(
                   clipper: CurveClipper(),
                   child: Container(
-                    height:screenHeight *0.50,
+                    height: screenHeight * 0.50,
                     color: AppColors.darkRed,
                     width: double.infinity,
                     child: SafeArea(
                       child: Column(
-                        mainAxisAlignment: MainAxisAlignment.start,
                         children: [
                           const SizedBox(height: 30),
                           SizedBox(
                             height: 100,
-                            child: Image.asset(
-                              'assets/logo1.png',
-                              fit: BoxFit.contain,
-                            ),
+                            child: Image.asset('assets/logo1.png', fit: BoxFit.contain),
                           ),
                           const SizedBox(height: 8),
                           const Text('Create New Account',
-                            style: TextStyle(
-                              fontSize: 28,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                              letterSpacing: 1,
-                            ),
+                            style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white, letterSpacing: 1),
                           ),
                         ],
                       ),
@@ -112,10 +102,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 child: Card(
                   color: AppColors.white,
                   elevation: 5,
-                  shadowColor: AppColors.black,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20),
-                  ),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 26.0),
                     child: Form(
@@ -124,112 +111,54 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         mainAxisSize: MainAxisSize.min,
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          const Text('Register',
-                            textAlign: TextAlign.left,
-                            style: AppTextStyles.headingBold
-                          ),
+                          const Text('Register', style: AppTextStyles.headingBold),
                           const SizedBox(height: 4),
-                          const Text('Lengkapi data diri Anda untuk mulai memesan',
-                            textAlign: TextAlign.left,
-                            style: AppTextStyles.bodyRegular
-                          ),
+                          const Text('Lengkapi data diri Anda untuk mulai memesan', style: AppTextStyles.bodyRegular),
                           const SizedBox(height: 24),
                           
-                          const Text('Nama Lengkap',style: AppTextStyles.formLabel),
-                          const SizedBox(height: 6),
+                          // Input Fields
+                          const Text('Nama Lengkap',style:AppTextStyles.formLabel),
+                            const SizedBox(height: 6),
                           CustomTextField(
                             controller: _nameController,
                             hintText: 'Nama Lengkap',
                             prefixIcon: Icons.person_outline,
-                            validator: (val) {
-                              if (val == null || val.isEmpty) return 'Nama tidak boleh kosong';
-                              final regex = RegExp(r"^[a-zA-Z\s'-]+$");
-                              if (!regex.hasMatch(val)) {
-                                return 'Nama hanya boleh huruf, spasi, tanda (-) atau (\')';
-                              }
-                              if (val.trim().length < 2) {
-                                return 'Nama terlalu pendek';
-                              }
-                              return null;
-                            },
+                            validator: (val) => (val == null || val.trim().length < 2) ? 'Nama tidak valid' : null,
                           ),
                           const SizedBox(height: 14),
-
-                          const Text('Nomor Telepon',
-                            style: AppTextStyles.formLabel
-                          ),
-                          const SizedBox(height: 6),
+                          const Text('Nomor HP',style:AppTextStyles.formLabel),
+                            const SizedBox(height: 6),
                           CustomTextField(
                             controller: _phoneController,
-                            hintText: 'Nomor HP (WhatsApp)',
+                            hintText: 'Nomor HP',
                             prefixIcon: Icons.phone_android_outlined,
-                            inputFormatters: [
-                              FilteringTextInputFormatter.digitsOnly,
-                            ],
                             keyboardType: TextInputType.phone,
-                            validator: (val) {
-                              if (val == null || val.isEmpty) return 'Nomor HP tidak boleh kosong';
-                              if (val.length < 10) return 'Nomor HP minimal 10 digit';
-                              String phone = val.replaceAll(' ', '');
-                              final regex = RegExp(r'^(\\+62|62|0)8[1-9][0-9]{7,11}$');
-
-                              if (!regex.hasMatch(phone)) {
-                                return 'Format nomor HP tidak valid';
-                              }
-                              return null;
-                            },
+                            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                            validator: (val) => (val == null || val.length < 10) ? 'Nomor HP tidak valid' : null,
                           ),
                           const SizedBox(height: 14),
-
-                          const Text('Email',
-                            style: AppTextStyles.formLabel
-                          ),
-                          const SizedBox(height: 6),
+                          const Text('Email',style:AppTextStyles.formLabel),
+                            const SizedBox(height: 6),
                           CustomTextField(
                             controller: _emailController,
                             hintText: 'Alamat Email',
                             prefixIcon: Icons.email_outlined,
                             keyboardType: TextInputType.emailAddress,
-                            validator: (val) {
-                              if (val == null || val.isEmpty) return 'Email tidak boleh kosong';
-                              if (!_isValidEmail(val)) return 'Format email tidak valid';
-                              return null;
-                            },
+                            validator: (val) => !_isValidEmail(val ?? '') ? 'Email tidak valid' : null,
                           ),
                           const SizedBox(height: 14),
-
-                          const Text('Password',
-                            style: AppTextStyles.formLabel
-                          ),
-                          const SizedBox(height: 6),
+                          const Text('Password',style:AppTextStyles.formLabel),
+                            const SizedBox(height: 6),
                           CustomTextField(
                             controller: _passwordController,
                             prefixIcon: Icons.lock_outline,
                             obscureText: _obscurePassword,
-                            //autovalidateMode: AutovalidateMode.onUserInteraction,
                             hintText: 'Masukkan password',
                             suffixIcon: IconButton(
-                              icon: Icon(
-                                _obscurePassword
-                                    ? Icons.visibility_off_outlined
-                                    : Icons.visibility_outlined,
-                                color: AppColors.textSecondary,
-                              ),
-                              onPressed: () {
-                                setState(() {
-                                  _obscurePassword = !_obscurePassword;
-                                });
-                              },
+                              icon: Icon(_obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined),
+                              onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
                             ),
-                            validator: (val) {
-                              if (val == null || val.isEmpty) {
-                                return 'Password tidak boleh kosong';
-                              }
-                              if (val.length < 6) {
-                                return 'Password minimal 6 karakter';
-                              }
-                              return null;
-                            },
+                            validator: (val) => (val == null || val.length < 6) ? 'Password minimal 6 karakter' : null,
                           ),
                           const SizedBox(height: 24),
 
@@ -244,7 +173,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                       RegisterRequested(
                                         _nameController.text.trim(),
                                         _phoneController.text.trim(),
-                                        _emailController.text.trim(),
+                                        _emailController.text.trim().toLowerCase(),
                                         _passwordController.text,
                                       ),
                                     );
@@ -254,24 +183,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             },
                           ),
                           const SizedBox(height: 20),
-
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              const Text(
-                                'Sudah punya akun? ',
-                                style: AppTextStyles.bodyRegular,
-                              ),
+                              const Text('Sudah punya akun? ', style: AppTextStyles.bodyRegular),
                               GestureDetector(
-                                onTap: (){
-                                  _nameController.clear();
-                                  _phoneController.clear();
-                                  _emailController.clear();
-                                  _passwordController.clear();
-                                  _formKey.currentState?.reset();
-                                  Navigator.pop(context);
-                                } ,
-                                child: const Text('Masuk Disini',style: AppTextStyles.bodyOrange)
+                                onTap: () => Navigator.pop(context),
+                                child: const Text('Masuk Disini', style: AppTextStyles.bodyOrange),
                               ),
                             ],
                           ),
@@ -294,17 +212,11 @@ class CurveClipper extends CustomClipper<Path> {
   Path getClip(Size size) {
     Path path = Path();
     path.lineTo(0, size.height - 40);
-
-    var controlPoint = Offset(size.width / 2, size.height + 15);
-    var endPoint = Offset(size.width, size.height - 40);
-
-    path.quadraticBezierTo(controlPoint.dx, controlPoint.dy, endPoint.dx, endPoint.dy);
-    
+    path.quadraticBezierTo(size.width / 2, size.height + 15, size.width, size.height - 40);
     path.lineTo(size.width, 0);
     path.close();
     return path;
   }
-
   @override
   bool shouldReclip(CustomClipper<Path> oldClipper) => false;
 }
