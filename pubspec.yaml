@@ -97,6 +97,7 @@ flutter_native_splash:
     image: "assets/logo.png"
     color: "#FFF8F0"
 
+
 # The following section is specific to Flutter packages.
 flutter:
 
