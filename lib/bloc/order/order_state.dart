@@ -1,5 +1,5 @@
 import 'package:equatable/equatable.dart';
-import 'package:moburger/data/models/order_item_details_model.dart';
+import 'package:moburger/data/models/order_item_topping_model.dart';
 import 'package:moburger/data/models/order_model.dart';
 
 abstract class OrderState extends Equatable {
@@ -66,7 +66,7 @@ class OrderFailure extends OrderState {
 }
 
 class OrderDetailLoadSuccess extends OrderState {
-  final List<OrderItemWithDetails> items;
+  final List<OrderItemTopping> items;
   OrderDetailLoadSuccess({required this.items});
 
   @override

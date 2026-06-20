@@ -104,10 +104,15 @@ on<SearchOrderRequested>(_onSearchOrder);
 
   Future<void> _onLoadOrderDetail(LoadOrderDetailEvent event, Emitter<OrderState> emit) async {
     emit(OrderLoading());
+    print("DEBUG: Event LoadOrderDetail diterima. ID: ${event.orderId}"); // <--- Tambah ini
+    
     try {
       final items = await _orderRepository.getOrderDetail(event.orderId);
+      print("DEBUG: Data berhasil diambil. Jumlah item: ${items.length}"); // <--- Tambah ini
+      
       emit(OrderDetailLoadSuccess(items: items));
     } catch (e) {
+      print("DEBUG: Error di Repository: $e"); // <--- Tambah ini
       emit(OrderFailure('Gagal mengambil detail pesanan: $e'));
     }
   }

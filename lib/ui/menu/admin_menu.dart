@@ -236,7 +236,6 @@ class _AdminMenuScreenState extends State<AdminMenuScreen> {
           margin: const EdgeInsets.only(bottom: 12), color: AppColors.white, elevation: 0,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12), side: BorderSide(color: AppColors.darkRed.withOpacity(0.05))),
           child: ListTile(
-            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => DetailMenuScreen(menu: item))),
             contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             leading: Hero(tag: 'menu_image_${item.id}', child: _buildMenuThumbnail(item.image_url, item.kategori)),
             title: Text(item.nama_menu ?? '', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),

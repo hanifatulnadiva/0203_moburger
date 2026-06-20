@@ -53,13 +53,18 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final currentUser = Supabase.instance.client.auth.currentUser;
     return MultiBlocProvider(
       providers: [
         BlocProvider(create: (context) => AuthBloc(repository: AuthRepository())),
         BlocProvider(create: (context) => MenuBloc(repository: MenuRepository())),
         BlocProvider(create: (context) => ToppingBloc(repository: ToppingRepository())),
         BlocProvider(create: (context) => OrderBloc(orderRepository: OrderRepository())),
-        BlocProvider<CartBloc>(create: (context) => CartBloc()),
+        BlocProvider(
+          create: (_) => CartBloc(
+            cartId: 'cart_${currentUser?.id ?? "guest"}',
+          ),
+        ),
         BlocProvider(create: (context) => ReportBloc(ReportRepository())),
       ],
       child: MaterialApp(

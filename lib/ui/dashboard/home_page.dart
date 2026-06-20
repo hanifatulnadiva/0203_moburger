@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:moburger/bloc/auth/auth_state.dart';
 import 'package:moburger/bloc/order/order_bloc.dart';
+import 'package:moburger/bloc/auth/auth_bloc.dart';
 import 'package:moburger/bloc/order/order_state.dart';
 import 'package:moburger/bloc/order/order_event.dart';
 import 'package:moburger/core/contants/colors.dart';
@@ -10,6 +12,7 @@ import 'package:moburger/core/widget/custom_status_card.dart';
 import 'package:moburger/core/widget/empty_state_widget.dart';
 import 'package:moburger/core/widget/kategori_filter.dart';
 import 'package:moburger/ui/menu/customer_menu.dart';
+import 'package:moburger/ui/profile/profile_page.dart';
 import 'package:moburger/ui/topping/list_topping.dart';
 
 class AdminDashboardScreen extends StatefulWidget {
@@ -21,8 +24,6 @@ class AdminDashboardScreen extends StatefulWidget {
 
 class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   final TextEditingController _searchController = TextEditingController();
-  
-  // Filter tanpa opsi 'Semua'
   String _selectedCategory = 'diprosess'; 
   final List<String> _categories = ['diprosess', 'siap diambil', 'selesai'];
 
@@ -52,7 +53,33 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           padding: const EdgeInsets.only(bottom: 100),
           child: Column(
             children: [
-              DashboardHeader(searchController: _searchController, userRole: 'admin'),
+              DashboardHeader(
+                searchController: _searchController, 
+                userRole: 'admin',
+                onSearchChanged: (value) {
+                  if (value.trim().isEmpty) {
+                    context.read<OrderBloc>().add(LoadAdminOrderHistoryEvent());
+                  } else {
+                    context.read<OrderBloc>().add(
+                      SearchOrderRequested(value),
+                    );
+                  }
+                },
+                onRightActionTap: () {
+                  final authState = context.read<AuthBloc>().state;
+
+                  if (authState is Authenticated) {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => ProfileScreen(
+                          user: authState.user,
+                        ),
+                      ),
+                    );
+                  }
+                },
+              ),
               Padding(
                 padding: const EdgeInsets.all(20.0),
                 child: Column(
@@ -78,8 +105,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                         });
                       },
                     ),
-                    const SizedBox(height: 12),
-                    
+                    const SizedBox(height: 8),
                     _buildOrderList(),
                   ],
                 ),
@@ -104,17 +130,14 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   Widget _buildOrderStatusGrid() {
     return BlocBuilder<OrderBloc, OrderState>(
       builder: (context, state) {
-        int pending = 0, proses = 0, siap = 0, selesai = 0;
+        int proses = 0, siap = 0, selesai = 0;
         if (state is OrderHistoryLoadSuccess) {
-          pending = state.orders.where((o) => o.status == 'pending').length;
           proses = state.orders.where((o) => o.status == 'diprosess').length;
           siap = state.orders.where((o) => o.status == 'siap diambil').length;
           selesai = state.orders.where((o) => o.status == 'selesai').length;
         }
         return Row(
           children: [
-            Expanded(child: OptionCard(label: "Pending", value: "$pending", icon: Icons.hourglass_top_rounded, color: AppColors.darkRed)),
-            const SizedBox(width: 8),
             Expanded(child: OptionCard(label: "Proses", value: "$proses", icon: Icons.local_fire_department_rounded, color: AppColors.orange)),
             const SizedBox(width: 8),
             Expanded(child: OptionCard(label: "Siap", value: "$siap", icon: Icons.takeout_dining_rounded, color: AppColors.info)),

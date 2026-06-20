@@ -48,7 +48,6 @@ class _FormToppingScreensState extends State<FormToppingScreens> {
       _hargaController.text = widget.topping.harga?.toString() ?? '';
       _selectedKategori = widget.topping.kategori;
       _oldImageUrl = widget.topping.image_url; 
-      _deskripsiController.text = widget.topping.toString() ?? '';
       if (widget.topping.tersedia != null) {
         _selectedTersedia = widget.topping.tersedia == true ? 'Tersedia' : 'Habis';
       } else {
@@ -62,7 +61,6 @@ class _FormToppingScreensState extends State<FormToppingScreens> {
   void dispose() {
     _namaToppingController.dispose();
     _hargaController.dispose();
-    _deskripsiController.dispose();
     super.dispose();
   }
 
@@ -228,12 +226,6 @@ class _FormToppingScreensState extends State<FormToppingScreens> {
                 ),
                 validator: (val) => val == null ? 'Pilih status ketersediaan produk' : null,
               ),
-              const Text('Deskripsi Produk',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textPrimary,
-                ),
-              ),
               
               const SizedBox(height: 32),
 
@@ -251,7 +243,7 @@ class _FormToppingScreensState extends State<FormToppingScreens> {
                 SizedBox(width: 12),
                 Expanded(
                   child: PrimaryButton(
-                    text: widget.topping== null? 'Tambah Produk':'Simpan Perubahan',
+                    text: widget.topping== null? 'Tambah Topping':'Simpan Perubahan',
                     onPressed: _saveTopping,
                   )
                 )

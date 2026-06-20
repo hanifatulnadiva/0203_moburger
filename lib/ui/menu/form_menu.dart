@@ -44,7 +44,7 @@ class _FormMenuScreensState extends State<FormMenuScreens> {
       _hargaController.text = widget.menu.harga?.toString() ?? '';
       _selectedKategori = widget.menu.kategori;
       _oldImageUrl = widget.menu.image_url; 
-      _deskripsiController.text = widget.menu.toString() ?? '';
+      _deskripsiController.text = widget.menu.deskripsi?? '';
       if (widget.menu.tersedia != null) {
         _selectedTersedia = widget.menu.tersedia == true ? 'Tersedia' : 'Habis';
       } else {
@@ -287,12 +287,6 @@ class _FormMenuScreensState extends State<FormMenuScreens> {
                 minLines: 4,
                 maxLines: 8,
                 hintText: 'Masukkan deskripsi produk...',
-                validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
-                    return 'Deskripsi tidak boleh kosong';
-                  }
-                  return null;
-                },
               ),
               const SizedBox(height: 32),
 

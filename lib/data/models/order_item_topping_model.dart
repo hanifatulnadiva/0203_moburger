@@ -13,7 +13,7 @@
 ///   ]
 /// }
 /// ```
-class OrderItemWithDetails {
+class OrderItemTopping {
   final String id;
   final String menuName;
   final int quantity;
@@ -22,7 +22,7 @@ class OrderItemWithDetails {
   final double subTotal;
   final String? imageUrl;
 
-  const OrderItemWithDetails({
+  const OrderItemTopping({
     required this.id,
     required this.menuName,
     required this.quantity,
@@ -32,7 +32,7 @@ class OrderItemWithDetails {
     this.imageUrl,
   });
 
-  factory OrderItemWithDetails.fromJson(Map<String, dynamic> json) {
+  factory OrderItemTopping.fromJson(Map<String, dynamic> json) {
     final menu = json['menu'] as Map<String, dynamic>?;
 
     final List<dynamic> toppingPivot = json['order_item_topping'] ?? [];
@@ -58,7 +58,7 @@ class OrderItemWithDetails {
         ? double.tryParse(subtotalRaw) ?? (quantity * price)
         : (subtotalRaw as num?)?.toDouble() ?? (quantity * price);
 
-    return OrderItemWithDetails(
+    return OrderItemTopping(
       id: json['id']?.toString() ?? '',
       menuName: menu?['nama_menu']?.toString() ?? 'Menu tidak ditemukan',
       quantity: quantity,

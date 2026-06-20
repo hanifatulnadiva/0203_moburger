@@ -11,6 +11,7 @@ import 'package:moburger/core/widget/custom_card.dart';
 import 'package:moburger/core/widget/empty_state_widget.dart';
 import 'package:moburger/data/models/order_model.dart';
 import 'package:moburger/ui/dashboard/customer_home_page.dart';
+import 'package:moburger/ui/menu/customer_menu.dart';
 import 'package:moburger/ui/order/order_detail/detail_order.dart';
 import 'package:moburger/ui/order/order_detail/midtrans_webview_page.dart';
 import 'package:moburger/ui/order/pemantauan/pemantauan_pesanan.dart';
@@ -223,15 +224,20 @@ class _UserOrderHistoryScreenState extends State<UserOrderHistoryScreen>
       borderRadius: 20,
       onPressed: () {
         if (isPending) {
+          String token = order.snap_token ?? '';
+          String url = token.startsWith('http') 
+              ? token 
+              : "https://app.sandbox.midtrans.com/snap/v2/vtweb/$token"; 
+
           Navigator.push(context, MaterialPageRoute(builder: (_) => MidtransWebViewPage(
-              paymentUrl: order.snap_token ?? '',
+              paymentUrl: url, 
               orderNumber: order.order_number,
           )));
-          
+
         } else if (isSelesai) {
           Navigator.push(
             context, 
-            MaterialPageRoute(builder: (_) => const CustomerDashboardScreen(userRole: 'customer'))
+            MaterialPageRoute(builder: (_) => const CustomerMenuScreen())
           );
           if (mounted) {
             context.read<OrderBloc>().add(LoadUserOrderHistoryEvent());

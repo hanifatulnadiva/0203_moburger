@@ -183,7 +183,7 @@ class _ToppingPageState extends State<ToppingPage> {
         },
       ),
       floatingActionButton: Padding(
-        padding: const EdgeInsets.only(bottom: 90.0),
+        padding: const EdgeInsets.only(bottom: 10.0),
         child: FloatingActionButton(
           heroTag: 'fab_topping_add', 
           onPressed: () => _showFormDialog(context),

@@ -1,12 +1,12 @@
-import 'package:flutter_bloc/flutter_bloc.dart';
+
 import 'cart_event.dart';
 import 'cart_state.dart';
-
 import 'package:hydrated_bloc/hydrated_bloc.dart';
 
-// 1. Ubah extends Bloc menjadi HydratedBloc
 class CartBloc extends HydratedBloc<CartEvent, CartState> {
-  CartBloc() : super(CartInitial()) {
+  final String cartId;
+
+  CartBloc({required this.cartId}) : super(CartInitial()) {
     on<AddToCart>(_onAddToCart);
     on<IncrementCartItem>(_onIncrementCartItem);
     on<DecrementCartItem>(_onDecrementCartItem);
@@ -14,11 +14,11 @@ class CartBloc extends HydratedBloc<CartEvent, CartState> {
     on<ClearCart>(_onClearCart);
   }
 
-  // --- LOGIKA STORAGE (HydratedBloc) ---
   @override
+  String get id => cartId;
+   @override
   CartState? fromJson(Map<String, dynamic> json) {
     try {
-      // Mengambil data dari storage dan mengubahnya kembali ke state
       if (json['cartItems'] != null) {
         return CartLoaded(cartItems: List<Map<String, dynamic>>.from(json['cartItems']));
       }
@@ -30,7 +30,6 @@ class CartBloc extends HydratedBloc<CartEvent, CartState> {
 
   @override
   Map<String, dynamic>? toJson(CartState state) {
-    // Menyimpan state ke storage
     if (state is CartLoaded) {
       return {'cartItems': state.cartItems};
     }

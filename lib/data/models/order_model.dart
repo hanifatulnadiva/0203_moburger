@@ -1,7 +1,7 @@
 import 'package:equatable/equatable.dart';
-import 'package:moburger/data/models/order_item_details_model.dart';
+import 'package:moburger/data/models/order_item_topping_model.dart';
 
-class OrderModel extends Equatable{
+class OrderModel extends Equatable {
   final String id;
   final String order_number;
   final String order_type;
@@ -16,7 +16,7 @@ class OrderModel extends Equatable{
   final String? notes;
   final String createdAt;
   final String updateAt;
-  final List<OrderItemWithDetails>? items;
+  final List<OrderItemTopping>? items;
 
   const OrderModel({
     required this.id,
@@ -34,9 +34,8 @@ class OrderModel extends Equatable{
     this.snap_token,
     this.notes,
     this.items,
-    
   });
-  factory OrderModel.fromJson(Map<String,dynamic> json){
+  factory OrderModel.fromJson(Map<String, dynamic> json) {
     String? namaFinal = json['nama_customer'];
 
     if (namaFinal == null || namaFinal.isEmpty) {
@@ -49,27 +48,45 @@ class OrderModel extends Equatable{
       order_number: json['order_number'] ?? '',
       order_type: json['order_type'] ?? '',
       status: json['status'] ?? 'pending',
-      total_price: json['total_price'] is String 
-        ? int.tryParse(json['total_price']) ?? 0 
-        : (json['total_price'] ?? 0),
+      total_price: json['total_price'] is String
+          ? int.tryParse(json['total_price']) ?? 0
+          : (json['total_price'] ?? 0),
       user_id: json['user_id'] ?? '',
-      payment_status: json['payment_status']??'pending',
+      payment_status: json['payment_status'] ?? 'pending',
       nama_customer: namaFinal,
       payment_method: json['payment_method'],
-      transaction_id: json['transaction_id'],
+      transaction_id: json['transaction_id'] ?? json ['transaction_id'] ?? '',
       snap_token: json['snap_token'],
       notes: json['notes'],
-      createdAt: json['created_at']?.toString() ?? DateTime.now().toIso8601String(),
-      updateAt: json['update_at']?.toString() ?? DateTime.now().toIso8601String(),
+      createdAt:
+          json['created_at']?.toString() ?? DateTime.now().toIso8601String(),
+      updateAt:
+          json['update_at']?.toString() ?? DateTime.now().toIso8601String(),
       items: json['order_item'] != null
           ? (json['order_item'] as List)
-              .map((i) => OrderItemWithDetails.fromJson(i as Map<String, dynamic>))
-              .toList()
+                .map(
+                  (i) => OrderItemTopping.fromJson(i as Map<String, dynamic>),
+                )
+                .toList()
           : null,
     );
   }
   @override
-  List<Object?> get props=>[id,order_number, order_type, status, total_price, 
-  user_id, payment_status, nama_customer, payment_method, transaction_id, snap_token, 
-  notes, createdAt, items, updateAt];
+  List<Object?> get props => [
+    id,
+    order_number,
+    order_type,
+    status,
+    total_price,
+    user_id,
+    payment_status,
+    nama_customer,
+    payment_method,
+    transaction_id,
+    snap_token,
+    notes,
+    createdAt,
+    items,
+    updateAt,
+  ];
 }

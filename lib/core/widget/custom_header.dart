@@ -91,7 +91,7 @@ class DashboardHeader extends StatelessWidget {
                           shape: BoxShape.circle,
                         ),
                         child: Icon(
-                          isAdmin ? Icons.qr_code_scanner_rounded : Icons.person_rounded,
+                          Icons.person_rounded,
                           color: AppColors.orange,
                           size: 24,
                         ),
@@ -102,13 +102,12 @@ class DashboardHeader extends StatelessWidget {
 
                 const SizedBox(height: 28),
 
-                // Bagian Bawah: Search & Filter/Scan
                 Row(
                   children: [
                     Expanded(
                       child: CustomSearchBar(
                         controller: searchController,
-                        hintText: isAdmin ? 'Cari pesanan kustomer...' : 'Cari burger favoritmu...',
+                        hintText: isAdmin ? 'Cari pesanan customer' : 'Cari burger favoritmu...',
                         onChanged: onSearchChanged,
                         onClear: onSearchClear,
                       ),

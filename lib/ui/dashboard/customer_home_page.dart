@@ -48,6 +48,7 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen> {
   String _selectedCategory = 'Semua';
   String _searchQuery = "";
   int _currentCarouselIndex = 0;
+  List<MenuModel> _promoMenus = [];
 
   @override
   void initState() {
@@ -67,6 +68,15 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen> {
     final toppingState = context.read<ToppingBloc>().state;
     return toppingState is ToppingSuccess && toppingState.topping.any((t) => (t.kategori ?? '').toLowerCase() == 'level');
   }
+  void _updatePromoMenus(List<MenuModel> allMenus) {
+  // Paksa ambil semua menu sebagai promo untuk testing
+  final filtered = allMenus.take(3).toList(); 
+  if (mounted) {
+    setState(() {
+      _promoMenus = filtered;
+    });
+  }
+}
 
   void _navigateToDetail(BuildContext context, MenuModel item) {
     Navigator.push(context, MaterialPageRoute(builder: (_) => DetailMenuScreen(menu: item))).then((_) => setState(() {}));
@@ -158,7 +168,7 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const SizedBox(height: 20),
-                _buildPromoCarousel(),
+                _buildPromoCarousel(context, _promoMenus),
                 const SizedBox(height: 24),
                 const Padding(padding: EdgeInsets.symmetric(horizontal: 20.0), child: Text('Kategori Menu', style: AppTextStyles.judul)),
                 const SizedBox(height: 12),
@@ -174,32 +184,117 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen> {
     );
   }
 
-  Widget _buildPromoCarousel() {
-    return Column(
-      children: [
-        SizedBox(height: 160, child: PageView.builder(
+  Widget _buildPromoCarousel(BuildContext context, List<MenuModel> items) {
+  return Column(
+    children: [
+      SizedBox(
+        height: 200,
+        child: PageView.builder(
           controller: _pageController,
+          itemCount: items.length,
           onPageChanged: (i) => setState(() => _currentCarouselIndex = i),
-          itemCount: 3,
-          itemBuilder: (context, index) {
-            return Container(
-              margin: const EdgeInsets.symmetric(horizontal: 6),
-              decoration: BoxDecoration(color: index == 0 ? AppColors.darkRed : AppColors.orange, borderRadius: BorderRadius.circular(20)),
-              child: const Center(child: Text("PROMO", style: TextStyle(color: Colors.white))),
+          itemBuilder: (_, i) {
+            final menu = items[i];
+            return Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 6),
+              child: GestureDetector(
+                onTap: () => _navigateToDetail(context, menu),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(20),
+                  child: Stack(
+                    children: [
+                      // Gambar Background
+                      Positioned.fill(
+                        child: Image.network(
+                          menu.image_url,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => Container(color: AppColors.orange.withOpacity(0.2)),
+                        ),
+                      ),
+                      // Gradient Overlay agar teks terbaca
+                      Positioned.fill(
+                        child: Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [
+                                Colors.transparent,
+                                Colors.black.withOpacity(0.7),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                      // Teks Info
+                      Positioned(
+                        bottom: 16,
+                        left: 16,
+                        right: 16,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: AppColors.orange,
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                menu.kategori.toUpperCase(),
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              menu.nama_menu,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            Text(
+                              'Rp ${_formatPrice(menu.harga)}',
+                              style: const TextStyle(
+                                color: Colors.white70,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             );
           },
-        )),
-        const SizedBox(height: 12),
-        CustomDotIndicator(count: 3, currentIndex: _currentCarouselIndex),
-      ],
-    );
-  }
+        ),
+      ),
+      const SizedBox(height: 12),
+      CustomDotIndicator(count: items.length, currentIndex: _currentCarouselIndex),
+    ],
+  );
+}
 
   Widget _buildCatalogGrid() {
     return BlocBuilder<MenuBloc, MenuState>(builder: (context, menuState) {
       if (menuState is MenuLoading) return const Center(child: Padding(padding: EdgeInsets.all(20), child: CircularProgressIndicator()));
       
-      final allMenu = (menuState is MenuSuccess) ? menuState.menu : [];
+      final List<MenuModel> allMenu = (menuState is MenuSuccess) ? menuState.menu : [];
+    
+    // Update promo secara aman
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _promoMenus.isEmpty) {
+          _updatePromoMenus(allMenu);
+        }
+      });
       final displayList = _getFilteredList(allMenu);
 
       if (displayList.isEmpty) {
