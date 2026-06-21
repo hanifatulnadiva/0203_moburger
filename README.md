@@ -1,17 +1,167 @@
-# moburger
+# 🍔 MoBurger - Aplikasi Manajemen Transaksi dan Pemesanan Burger
 
-A new Flutter project.
+MoBurger adalah aplikasi mobile berbasis Flutter untuk pemesanan burger secara online, yang melayani dua peran pengguna dalam satu aplikasi: **Admin** dan **Customer**. Aplikasi ini dibangun menggunakan pola arsitektur **BLoC (Business Logic Component)** dengan **Supabase** sebagai backend (database autentikasi).
 
-## Getting Started
+---
 
-This project is a starting point for a Flutter application.
+## 📌 Problem Statement
 
-A few resources to get you started if this is your first Flutter project:
+Proses pemesanan burger secara konvensional (datang langsung ke toko atau memesan via chat/telepon) sering menimbulkan beberapa masalah, di antaranya:
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+- **Antrian dan waktu tunggu** yang tidak efisien, terutama saat jam ramai.
+- **Pencatatan pesanan manual** yang rentan terhadap kesalahan input dan kehilangan data.
+- **Minimnya transparansi status pesanan** — pelanggan tidak tahu sejauh mana progres pesanan mereka (diproses, dimasak, siap diambil).
+- **Sulitnya rekapitulasi laporan penjualan** bagi admin/pemilik toko karena dilakukan secara manual.
+- **Proses pembayaran yang belum terintegrasi**, sehingga verifikasi transaksi memakan waktu lebih lama.
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+**MoBurger** hadir sebagai solusi dengan menyediakan sistem pemesanan digital yang terintegrasi, mencakup pengelolaan menu, transaksi, pembayaran online, pelacakan status pesanan secara real-time, hingga laporan penjualan otomatis — dalam satu aplikasi yang dapat diakses oleh Admin maupun Customer sesuai perannya masing-masing.
+
+---
+
+## ✨ Fitur (Features)
+
+### Customer
+- Registrasi & login akun
+- Melihat daftar menu burger beserta detail dan topping
+- Menambahkan item ke keranjang (cart) dengan pilihan quantity & topping
+- Checkout dan pembayaran online terintegrasi **Midtrans** (via WebView)
+- Pelacakan status pesanan secara **real-time** (timeline pesanan)
+- Menampilkan **QR Code** sebagai bukti pengambilan pesanan
+- Riwayat pesanan pelanggan
+- Halaman profil pengguna
+
+### Admin
+- Dashboard admin dengan navigasi terpisah dari customer
+- Kelola data menu burger 
+- Kelola data topping
+- Kelola & pantau riwayat pesanan seluruh pelanggan, dengan filter status dan pagination
+- Laporan penjualan dengan visualisasi **grafik (bar chart & pie chart)**
+- **Ekspor laporan ke Excel**
+- Update status pesanan pelanggan
+
+### Umum
+- Autentikasi menggunakan Supabase Auth 
+- State management terstruktur menggunakan **flutter_bloc**
+- Dukungan mode onboarding untuk pengguna baru
+- Light/responsive UI dengan komponen reusable (DRY)
+
+---
+
+## 🗂️ Struktur Folder
+
+Struktur berikut difokuskan pada folder `lib/` (kode sumber utama) dan `assets/`. Folder hasil build (`build/`, `.dart_tool/`, `.gradle/`, dll.) tidak ditampilkan karena bersifat sementara/auto-generated.
+
+moburger/
+
+├── lib/
+
+│   ├── bloc/                      # State management (BLoC pattern)
+
+│   │   ├── auth/                  # Login, register, sesi pengguna
+
+│   │   ├── cart/                  # Keranjang belanja
+
+│   │   ├── menu/                  # Data menu burger
+
+│   │   ├── order/                 # Transaksi & status pesanan
+
+│   │   ├── report/                # Data laporan penjualan
+
+│   │   └── topping/               # Data topping tambahan
+
+│   │
+
+│   ├── core/
+
+│   │   ├── contants/              # Konstanta aplikasi (warna, teks, config)
+
+│   │   ├── exceptions/            # Custom exception handler
+
+│   │   ├── network/                # Pengecekan koneksi internet
+
+│   │   ├── service/                # Service pendukung (mis. export Excel)
+
+│   │   └── widget/                 # Widget reusable (button, card, dialog, dll.)
+
+│   │
+
+│   ├── data/
+
+│   │   ├── models/                 # Model data (Menu, Order, Topping, User, Report)
+
+│   │   └── repositories/           # Layer akses data ke Supabase
+
+│   │
+
+│   ├── ui/
+
+│   │   ├── Onboarding/              # Halaman onboarding awal
+
+│   │   ├── auth/                    # Halaman login & register
+
+│   │   ├── camera/                  # Fitur kamera (foto profil/menu)
+
+│   │   ├── dashboard/                # Dashboard admin & customer
+
+│   │   ├── menu/                     # Tampilan & form menu (admin/customer)
+
+│   │   ├── order/
+
+│   │   │   ├── history_order/        # Riwayat pesanan (admin & user)
+
+│   │   │   ├── order_detail/         # Cart, checkout, pembayaran Midtrans
+
+│   │   │   └── pemantauan/           # Pelacakan status pesanan & QR code
+
+│   │   ├── profile/                  # Halaman profil & about
+
+│   │   ├── report/                   # Laporan penjualan (chart & export)
+
+│   │   └── topping/                  # Kelola data topping
+
+│   │
+
+│   └── main.dart                    # Entry point aplikasi
+
+│
+
+├── assets/                          # Gambar, ikon, dan animasi (Lottie)
+
+├── android/ / ios/ / web/ / etc.     # Platform-specific files (auto-generated Flutter)
+
+├── test/                            # Unit/widget test
+
+└── pubspec.yaml                     # Daftar dependencies & konfigurasi project
+
+### Teknologi Utama
+| Kategori | Teknologi |
+|---|---|
+| Framework | Flutter |
+| State Management | flutter_bloc|
+| Backend & Auth | Supabase (supabase_flutter) |
+| Pembayaran | Midtrans |
+| Penyimpanan Lokal | flutter_secure_storage |
+| Visualisasi Data | fl_chart |
+| Export Laporan | excel|
+| Lainnya | qr_flutter, camera, image_picker|
+
+---
+
+## 📋 Progres Pengerjaan
+
+| Minggu | Progress |
+| :--- | :--- |
+| **1** | 1. Inisialisasi project Flutter, setup struktur folder (bloc, core, data, ui).<br>2. Konfigurasi Supabase.<br>3. Implementasi autentikasi (login & register) dan role-based navigation (admin/customer).<br>4. Implementasi modul menu (CRUD menu, topping) untuk admin & tampilan menu untuk customer. |
+| **2** | 1. Implementasi keranjang belanja (cart) dan alur checkout.<br>2. Integrasi pembayaran online via Midtrans (WebView).<br>3. Implementasi pelacakan status pesanan real-time & QR code pengambilan pesanan. |
+| **3** | 1. Implementasi riwayat pesanan admin (filter status & pagination) dan laporan penjualan (chart + export Excel).<br>2. Perbaikan bug (RLS policy, race condition registrasi, status mismatch), polishing UI, dan dokumentasi. |
+
+---
+
+## 🚀 Cara Menjalankan Project
+
+```bash
+flutter pub get
+flutter run
+```
+
+Pastikan environment Flutter sudah terpasang dan terkoneksi ke device/emulator.
