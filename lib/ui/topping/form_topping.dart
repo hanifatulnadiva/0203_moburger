@@ -14,7 +14,7 @@ import 'package:moburger/core/widget/custom_textfield.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class FormToppingScreens extends StatefulWidget {
-  final dynamic topping; 
+  final dynamic topping;
   const FormToppingScreens({super.key, this.topping});
 
   @override
@@ -23,15 +23,14 @@ class FormToppingScreens extends StatefulWidget {
 
 class _FormToppingScreensState extends State<FormToppingScreens> {
   final SupabaseClient _supabase = Supabase.instance.client;
-  
+
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _namaToppingController = TextEditingController();
   final TextEditingController _hargaController = TextEditingController();
-  final TextEditingController _deskripsiController = TextEditingController();
 
   final ImagePicker _picker = ImagePicker();
-  XFile? _selectedImage; 
-  String? _oldImageUrl;  
+  XFile? _selectedImage;
+  String? _oldImageUrl;
 
   String? _selectedKategori;
   String? _selectedTersedia;
@@ -42,18 +41,16 @@ class _FormToppingScreensState extends State<FormToppingScreens> {
   @override
   void initState() {
     super.initState();
-
     if (widget.topping != null) {
       _namaToppingController.text = widget.topping.nama_topping ?? '';
       _hargaController.text = widget.topping.harga?.toString() ?? '';
       _selectedKategori = widget.topping.kategori;
-      _oldImageUrl = widget.topping.image_url; 
+      _oldImageUrl = widget.topping.image_url;
       if (widget.topping.tersedia != null) {
         _selectedTersedia = widget.topping.tersedia == true ? 'Tersedia' : 'Habis';
       } else {
         _selectedTersedia = 'Tersedia';
       }
-      
     }
   }
 
@@ -64,92 +61,90 @@ class _FormToppingScreensState extends State<FormToppingScreens> {
     super.dispose();
   }
 
-  Future<void> _pickImage() async {
-    final source = await showModalBottomSheet<ImageSource>(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (context) => ClipRRect(
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-          child: Container(
-            color: Colors.black.withOpacity(0.6),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const SizedBox(height: 12),
-                Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: Colors.white30,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                ListTile(
-                  leading: const Icon(Icons.camera_alt, color: Colors.white),
-                  title: const Text('Kamera', style: TextStyle(color: Colors.white)),
-                  onTap: () => Navigator.pop(context, ImageSource.camera),
-                ),
-                ListTile(
-                  leading: const Icon(Icons.photo_library, color: Colors.white),
-                  title: const Text('Pilih dari Galeri', style: TextStyle(color: Colors.white)),
-                  onTap: () => Navigator.pop(context, ImageSource.gallery),
-                ),
-                const SizedBox(height: 16),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-
-    if (source == null) return;
-
-    try {
-      final XFile? photo = await _picker.pickImage(
-        source: source,
-        imageQuality: 50, 
-        maxWidth: 800,    
-      );
-      if (photo != null) {
-        setState(() {
-          _selectedImage = photo; 
-        });
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Gagal mengambil gambar: $e')),
-      );
-    }
-  }
   void _saveTopping() async {
     if (!_formKey.currentState!.validate()) return;
+
+    final String namaInput = _namaToppingController.text.trim();
+    final String namaInputLower = namaInput.toLowerCase();
+
     try {
       showDialog(
         context: context,
         barrierDismissible: false,
-        builder: (_) => const Center(child: CircularProgressIndicator(color: AppColors.orange)),
+        builder: (_) => const Center(
+          child: CircularProgressIndicator(color: AppColors.orange),
+        ),
       );
+
+      // Pengecekan Duplikat
+      final response = await _supabase
+          .from('topping')
+          .select('id, nama_topping');
+
+      bool isDuplicate = false;
+      if (response != null && (response as List).isNotEmpty) {
+        for (var item in response) {
+          String dbName = (item['nama_topping'] as String).trim().toLowerCase();
+          if (dbName == namaInputLower) {
+            if (widget.topping != null && item['id'] == widget.topping.id) {
+              continue;
+            }
+            isDuplicate = true;
+            break;
+          }
+        }
+      }
+
+      if (isDuplicate) {
+        if (mounted) Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.error_outline, color: Colors.white),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Nama "$namaInput" sudah terdaftar. Gunakan nama topping lain!',
+                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: Colors.redAccent,
+            behavior: SnackBarBehavior.floating,
+            duration: const Duration(seconds: 4),
+            action: SnackBarAction(
+              label: 'TUTUP',
+              textColor: Colors.white,
+              onPressed: () => ScaffoldMessenger.of(context).hideCurrentSnackBar(),
+            ),
+          ),
+        );
+        return;
+      }
+
       final Map<String, dynamic> toppingData = {
-        'nama_topping': _namaToppingController.text.trim(),
+        'nama_topping': namaInput,
         'harga': int.parse(_hargaController.text.trim()),
         'kategori': _selectedKategori,
         'tersedia': _selectedTersedia == 'Tersedia',
       };
 
-      if (mounted) Navigator.pop(context);
       if (widget.topping == null) {
-        context.read<ToppingBloc>().add(CreateTopping(toppingData)); 
+        context.read<ToppingBloc>().add(CreateTopping(toppingData));
       } else {
-        context.read<ToppingBloc>().add(UpdateTopping(widget.topping.id, toppingData)); 
+        context.read<ToppingBloc>().add(UpdateTopping(widget.topping.id, toppingData));
       }
-      if (mounted) Navigator.pop(context);
+
+      if (mounted) {
+        Navigator.pop(context);
+        Navigator.pop(context);
+      }
     } catch (e) {
-      if (mounted) Navigator.pop(context); 
+      if (mounted) Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Gagal menyimpan data topping: $e')),
+        SnackBar(content: Text('Gagal menyimpan data: $e')),
       );
     }
   }
@@ -159,7 +154,10 @@ class _FormToppingScreensState extends State<FormToppingScreens> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: Text(widget.topping == null ? 'Tambah Topping Baru' : 'Edit Topping Produk', style: AppTextStyles.judul,),
+        title: Text(
+          widget.topping == null ? 'Tambah Topping Baru' : 'Edit Topping Produk',
+          style: AppTextStyles.judul,
+        ),
         backgroundColor: AppColors.darkRed,
         foregroundColor: Colors.white,
         elevation: 0,
@@ -185,9 +183,9 @@ class _FormToppingScreensState extends State<FormToppingScreens> {
               ),
               const SizedBox(height: 16),
               const Text('Harga Produk (Rp)', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
-              SizedBox(height: 8),
+              const SizedBox(height: 8),
               CustomTextField(
-                controller:_hargaController,
+                controller: _hargaController,
                 hintText: "contoh: 35000",
                 keyboardType: TextInputType.number,
                 inputFormatters: [FilteringTextInputFormatter.digitsOnly],
@@ -197,7 +195,6 @@ class _FormToppingScreensState extends State<FormToppingScreens> {
                 },
               ),
               const SizedBox(height: 16),
-
               const Text('Kategori Topping', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
               const SizedBox(height: 8),
               DropdownButtonFormField<String>(
@@ -212,7 +209,6 @@ class _FormToppingScreensState extends State<FormToppingScreens> {
                 validator: (val) => val == null ? 'Pilih salah satu kategori' : null,
               ),
               const SizedBox(height: 16),
-
               const Text('Status Ketersediaan', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
               const SizedBox(height: 8),
               DropdownButtonFormField<String>(
@@ -226,28 +222,26 @@ class _FormToppingScreensState extends State<FormToppingScreens> {
                 ),
                 validator: (val) => val == null ? 'Pilih status ketersediaan produk' : null,
               ),
-              
               const SizedBox(height: 32),
-
-              Row(children: [
-                Expanded(
-                  child: PrimaryButton(
-                    text:"Batal",
-                    backgroundColor: Colors.grey[200]!,
-                    textColor: AppColors.black,
-                    onPressed: (){
-                      Navigator.pop(context);
-                    },
+              Row(
+                children: [
+                  Expanded(
+                    child: PrimaryButton(
+                      text: "Batal",
+                      backgroundColor: Colors.grey[200]!,
+                      textColor: AppColors.black,
+                      onPressed: () => Navigator.pop(context),
+                    ),
                   ),
-                ),
-                SizedBox(width: 12),
-                Expanded(
-                  child: PrimaryButton(
-                    text: widget.topping== null? 'Tambah Topping':'Simpan Perubahan',
-                    onPressed: _saveTopping,
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: PrimaryButton(
+                      text: widget.topping == null ? 'Tambah Topping' : 'Simpan Perubahan',
+                      onPressed: _saveTopping,
+                    ),
                   )
-                )
-              ],)
+                ],
+              )
             ],
           ),
         ),

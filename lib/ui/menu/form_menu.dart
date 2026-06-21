@@ -122,47 +122,89 @@ class _FormMenuScreensState extends State<FormMenuScreens> {
   Future<void> _saveMenu() async {
     if (!_formKey.currentState!.validate()) return;
 
-    if (widget.menu == null && _selectedImage == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Silakan pilih foto produk terlebih dahulu')),
-      );
-      return;
-    }
+    final String namaBaru = _namaMenuController.text.trim();
+
     try {
+      // Menampilkan loading
       showDialog(
         context: context,
         barrierDismissible: false,
         builder: (_) => const Center(child: CircularProgressIndicator(color: AppColors.orange)),
       );
-      String? imageUrl = _oldImageUrl; 
+
+      // 1. Pengecekan Duplikat (Case-Insensitive)
+      // Menggunakan .ilike untuk mendeteksi 'Burger' dan 'burger' sebagai data yang sama
+      var query = _supabase
+          .from('menu')
+          .select('id')
+          .ilike('nama_menu', namaBaru);
+
+      // Jika sedang mode Edit, abaikan record milik sendiri agar tidak terdeteksi duplikat
+      if (widget.menu != null) {
+        query = query.neq('id', widget.menu.id);
+      }
+
+      final List<dynamic> response = await query;
+
+      if (response.isNotEmpty) {
+        if (mounted) Navigator.pop(context); // Tutup loading
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Menu dengan nama tersebut sudah ada!'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return; // Hentikan proses
+      }
+
+      // 2. Validasi Gambar (Hanya untuk menu baru)
+      if (widget.menu == null && _selectedImage == null) {
+        if (mounted) Navigator.pop(context); // Tutup loading
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Silakan pilih foto produk terlebih dahulu')),
+        );
+        return;
+      }
+
+      // 3. Proses Upload Gambar
+      String? imageUrl = _oldImageUrl;
       if (_selectedImage != null) {
         final String fileName = '${DateTime.now().millisecondsSinceEpoch}.png';
         final File fileToUpload = File(_selectedImage!.path);
+        
         await _supabase.storage.from('burger_image').upload(
-              fileName,
-              fileToUpload,
-              fileOptions: const FileOptions(contentType: 'image/png'),
-            );
+          fileName,
+          fileToUpload,
+          fileOptions: const FileOptions(contentType: 'image/png'),
+        );
+        
         imageUrl = _supabase.storage.from('burger_image').getPublicUrl(fileName);
       }
 
+      // 4. Persiapan Data
       final Map<String, dynamic> menuData = {
-        'nama_menu': _namaMenuController.text.trim(),
+        'nama_menu': namaBaru,
         'harga': int.parse(_hargaController.text.trim()),
         'kategori': _selectedKategori,
         'tersedia': _selectedTersedia == 'Tersedia',
-        'image_url': imageUrl, 
-        'deskripsi':_deskripsiController.text.trim()
+        'image_url': imageUrl,
+        'deskripsi': _deskripsiController.text.trim()
       };
-      if (mounted) Navigator.pop(context);
+
+      // 5. Kirim ke Bloc
       if (widget.menu == null) {
-        context.read<MenuBloc>().add(CreateMenu(menuData)); 
+        context.read<MenuBloc>().add(CreateMenu(menuData));
       } else {
-        context.read<MenuBloc>().add(UpdateMenu(widget.menu.id, menuData)); 
+        context.read<MenuBloc>().add(UpdateMenu(widget.menu.id, menuData));
       }
-      if (mounted) Navigator.pop(context);
+
+      if (mounted) {
+        Navigator.pop(context); // Tutup loading
+        Navigator.pop(context); // Kembali ke halaman sebelumnya
+      }
+      
     } catch (e) {
-      if (mounted) Navigator.pop(context); 
+      if (mounted) Navigator.pop(context); // Pastikan loading tertutup jika error
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Gagal menyimpan data menu: $e')),
       );

@@ -237,64 +237,64 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                             const SizedBox(height: 20),
 
-                            Row(
-                              children: const [
-                                Expanded(
-                                  child: Divider(
-                                    color: AppColors.textSecondary,
-                                    thickness: 0.5,
-                                  ),
-                                ),
-                                Padding( padding: EdgeInsets.symmetric(horizontal: 12.0),
-                                  child: Text('atau',
-                                    style: TextStyle(
-                                      color: AppColors.textSecondary,
-                                      fontSize: 13,
-                                    ),
-                                  ),
-                                ),
-                                Expanded(
-                                  child: Divider(
-                                    color: AppColors.textSecondary,
-                                    thickness: 0.5,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 20),
+                            // Row(
+                            //   children: const [
+                            //     Expanded(
+                            //       child: Divider(
+                            //         color: AppColors.textSecondary,
+                            //         thickness: 0.5,
+                            //       ),
+                            //     ),
+                            //     Padding( padding: EdgeInsets.symmetric(horizontal: 12.0),
+                            //       child: Text('atau',
+                            //         style: TextStyle(
+                            //           color: AppColors.textSecondary,
+                            //           fontSize: 13,
+                            //         ),
+                            //       ),
+                            //     ),
+                            //     Expanded(
+                            //       child: Divider(
+                            //         color: AppColors.textSecondary,
+                            //         thickness: 0.5,
+                            //       ),
+                            //     ),
+                            //   ],
+                            // ),
+                            // const SizedBox(height: 20),
 
-                            SizedBox(
-                              width: double.infinity,
-                              height: 50,
-                              child: OutlinedButton.icon(
-                                style: OutlinedButton.styleFrom(
-                                  foregroundColor: AppColors.textPrimary,
-                                  side: const BorderSide(
-                                    color: AppColors.textSecondary,
-                                    width: 1,
-                                  ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                ),
-                                icon: const Icon(Icons.g_mobiledata,
-                                  size: 32,
-                                  color: AppColors.orange,
-                                ),
-                                label: const Text('Masuk dengan Google',
-                                  style: TextStyle(
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                                onPressed: () {
-                                  context.read<AuthBloc>().add(
-                                    GoogleLoginRequested(),
-                                  );
-                                },
-                              ),
-                            ),
-                            const SizedBox(height: 24),
+                            // SizedBox(
+                            //   width: double.infinity,
+                            //   height: 50,
+                            //   child: OutlinedButton.icon(
+                            //     style: OutlinedButton.styleFrom(
+                            //       foregroundColor: AppColors.textPrimary,
+                            //       side: const BorderSide(
+                            //         color: AppColors.textSecondary,
+                            //         width: 1,
+                            //       ),
+                            //       shape: RoundedRectangleBorder(
+                            //         borderRadius: BorderRadius.circular(12),
+                            //       ),
+                            //     ),
+                            //     icon: const Icon(Icons.g_mobiledata,
+                            //       size: 32,
+                            //       color: AppColors.orange,
+                            //     ),
+                            //     label: const Text('Masuk dengan Google',
+                            //       style: TextStyle(
+                            //         fontSize: 15,
+                            //         fontWeight: FontWeight.bold,
+                            //       ),
+                            //     ),
+                            //     onPressed: () {
+                            //       context.read<AuthBloc>().add(
+                            //         GoogleLoginRequested(),
+                            //       );
+                            //     },
+                            //   ),
+                            // ),
+                           // const SizedBox(height: 24),
 
                             Row(
                               mainAxisAlignment: MainAxisAlignment.center,

@@ -78,7 +78,7 @@ class AuthRepository {
     try {
       await _supabase.auth.signInWithOAuth(
         OAuthProvider.google,
-        redirectTo: 'io.supabase.moburger://login-callback/',
+        redirectTo: 'io.supabase.moburger://login-callback',
       );
     } on AuthException catch (e) {
       throw Exception(e.message);
