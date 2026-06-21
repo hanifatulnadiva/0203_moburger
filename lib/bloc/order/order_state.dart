@@ -11,7 +11,10 @@ abstract class OrderState extends Equatable {
 
 class OrderInitial extends OrderState {}
 
-class OrderLoading extends OrderState {}
+class OrderLoading extends OrderState {
+  final bool isFirstLoad;
+  const OrderLoading({this.isFirstLoad = false});
+}
 
 class OrderCreateSuccess extends OrderState {
   final String orderId;
@@ -49,10 +52,15 @@ class OrderWatchSuccess extends OrderState {
 
 class OrderHistoryLoadSuccess extends OrderState {
   final List<OrderModel> orders;
-  const OrderHistoryLoadSuccess(this.orders);
+  final bool hasReachedMax;
+
+  const OrderHistoryLoadSuccess({
+    required this.orders,
+    required this.hasReachedMax,
+  });
 
   @override
-  List<Object?> get props => [orders];
+  List<Object?> get props => [orders, hasReachedMax];
 }
 
 class OrderStatusUpdateSuccess extends OrderState {}

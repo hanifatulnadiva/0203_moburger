@@ -52,7 +52,13 @@ class UpdateOrderStatusEvent extends OrderEvent {
   List<Object?> get props => [orderId, status];
 }
 
-class LoadUserOrderHistoryEvent extends OrderEvent {}
+class LoadUserOrderHistoryEvent extends OrderEvent {
+  final bool isRefresh;
+  const LoadUserOrderHistoryEvent({this.isRefresh = false});
+
+  @override
+  List<Object?> get props => [isRefresh];
+}
 
 class LoadAdminOrderHistoryEvent extends OrderEvent {}
 

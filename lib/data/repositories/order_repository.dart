@@ -138,17 +138,21 @@ class OrderRepository {
     }
   }
 
-  /// Ambil riwayat pesanan USER
-  Future<List<OrderModel>> getUserOrderHistory() async {
+  Future<List<OrderModel>> getUserOrderHistory({required int page}) async {
     try {
       final userId = _supabase.auth.currentUser?.id;
       if (userId == null) throw Exception('Sesi login tidak ditemukan.');
+
+      final int limit = 10;
+      final int from = (page - 1) * limit;
+      final int to = from + limit - 1;
 
       final response = await _supabase
           .from('order')
           .select()
           .eq('user_id', userId)
-          .order('created_at', ascending: false);
+          .order('created_at', ascending: false)
+          .range(from, to); 
 
       return (response as List)
           .map((json) => OrderModel.fromJson(json))

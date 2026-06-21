@@ -6,6 +6,7 @@ import 'order_state.dart';
 
 class OrderBloc extends Bloc<OrderEvent, OrderState> {
   final OrderRepository _orderRepository;
+  int _page = 1;
 
   OrderBloc({required OrderRepository orderRepository})
       : _orderRepository = orderRepository,
@@ -83,10 +84,38 @@ on<SearchOrderRequested>(_onSearchOrder);
   }
 
   Future<void> _onLoadUserOrderHistory(LoadUserOrderHistoryEvent event, Emitter<OrderState> emit) async {
-    emit(OrderLoading());
+    if (event.isRefresh) {
+      _page = 1;
+      emit(OrderLoading()); // Full screen loader
+    } else {
+      // Jika bukan refresh (load more), jangan emit OrderLoading agar layar tidak kedip
+    }
+
     try {
-      final order = await _orderRepository.getUserOrderHistory();
-      emit(OrderHistoryLoadSuccess(order));
+      // 2. Ambil data dengan parameter page (pastikan repository mendukung ini)
+      final newOrders = await _orderRepository.getUserOrderHistory(page: _page);
+      
+      // 3. Tentukan apakah sudah mencapai halaman terakhir (asumsi 10 item per page)
+      final bool hasReachedMax = newOrders.length < 10;
+
+      // 4. Logika State
+      if (state is OrderHistoryLoadSuccess && !event.isRefresh) {
+        final oldOrders = (state as OrderHistoryLoadSuccess).orders;
+        emit(OrderHistoryLoadSuccess(
+          orders: [...oldOrders, ...newOrders], 
+          hasReachedMax: hasReachedMax
+        ));
+      } else {
+        emit(OrderHistoryLoadSuccess(
+          orders: newOrders, 
+          hasReachedMax: hasReachedMax
+        ));
+      }
+
+      // 5. Increment page jika ada data baru
+      if (newOrders.isNotEmpty) {
+        _page++;
+      }
     } catch (e) {
       emit(OrderFailure(e.toString()));
     }
@@ -96,7 +125,7 @@ on<SearchOrderRequested>(_onSearchOrder);
     emit(OrderLoading());
     try {
       final order = await _orderRepository.getAllUserOrderHistoryForAdmin();
-      emit(OrderHistoryLoadSuccess(order));
+      emit(OrderHistoryLoadSuccess(orders:order, hasReachedMax: true));
     } catch (e) {
       emit(OrderFailure(e.toString()));
     }
@@ -121,9 +150,8 @@ on<SearchOrderRequested>(_onSearchOrder);
   Future<void> _onSearchOrder(SearchOrderRequested event, Emitter<OrderState> emit) async {
     emit(OrderLoading());
     try {
-      // Panggil fungsi search di Repository
       final orders = await _orderRepository.searchOrders(event.query);
-      emit(OrderHistoryLoadSuccess(orders)); 
+      emit(OrderHistoryLoadSuccess(orders:orders, hasReachedMax: true)); 
     } catch (e) {
       emit(OrderFailure('Gagal mencari pesanan: $e'));
     }

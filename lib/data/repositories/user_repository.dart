@@ -90,4 +90,34 @@ class AuthRepository {
   Future<void> logout() async {
     await _supabase.auth.signOut();
   }
+
+  Future<UserModel> updateProfile({
+    required String id,
+    required String namaLengkap,
+    required String nohp,
+  }) async {
+    try {
+      await _supabase
+          .from('users')
+          .update({
+            'nama_lengkap': namaLengkap,
+            'nohp': nohp,
+          })
+          .eq('id', id);
+
+      return await _fetchUserFromTable(id, _supabase.auth.currentUser!.email ?? '');
+    } catch (e) {
+      throw Exception('Gagal update profile: $e');
+    }
+  }
+
+  Future<void> changePassword(String newPassword) async {
+    try {
+      await _supabase.auth.updateUser(
+        UserAttributes(password: newPassword),
+      );
+    } catch (e) {
+      throw Exception('Gagal ganti password: $e');
+    }
+  }
 }

@@ -30,6 +30,7 @@ class DetailMenuScreen extends StatefulWidget {
 class _DetailMenuScreenState extends State<DetailMenuScreen> {
   int _quantity = 1;
   String _selectedLevel = '';
+  bool _levelRequiredButMissing = false;
   final TextEditingController _catatanController = TextEditingController();
   final List<ToppingModel> _selectedToppings = [];
 
@@ -89,7 +90,6 @@ class _DetailMenuScreenState extends State<DetailMenuScreen> {
   }
 
   void _simpanKeKeranjang(int hargaSatuanTotal) {
-    // FIX BARU: Menghapus pengecekan null manual redundan yang menyebabkan dead code
     final String menuId = widget.menu.id.toString();
     print("DEBUG DETAIL - Topping Terpilih: ${_selectedToppings.map((t) => t.id).toList()}");
     final List<String> toppingIds =_selectedToppings.map((t) => t.id ?? '').toList();
@@ -117,6 +117,7 @@ class _DetailMenuScreenState extends State<DetailMenuScreen> {
       'level': _selectedLevel,
       'toppings': toppingIds,
       'notes': catatanAkhir,
+      'image_url': widget.menu.image_url ?? '',
     };
 
     if (widget.itemKustomisasiLama != null) {
@@ -188,7 +189,7 @@ class _DetailMenuScreenState extends State<DetailMenuScreen> {
                 ),
                 color: Colors.white.withValues(
                   alpha: 0.08,
-                ), // FIX BARU: Memakai .withValues modern
+                ), 
                 border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
               ),
               child: ClipRRect(
@@ -204,7 +205,6 @@ class _DetailMenuScreenState extends State<DetailMenuScreen> {
                         fit: BoxFit.cover,
                         errorBuilder: (_, error, stackTrace) =>
                           const Center(
-                            // FIX BARU: Hilangkan double underscore
                             child: Icon(
                               Icons.fastfood_rounded,
                               size: 80,
@@ -321,13 +321,20 @@ class _DetailMenuScreenState extends State<DetailMenuScreen> {
                                 final drinkToppings = allToppings
                                     .where((t) =>(t.kategori ?? '').toLowerCase() =='drink',).toList();
 
-                                if (_selectedLevel.isEmpty &&levelToppings.isNotEmpty && widget.itemKustomisasiLama == null) {
-                                  WidgetsBinding.instance.addPostFrameCallback(( _,){
-                                    setState(() {
-                                      _selectedLevel =levelToppings.first.nama_topping ?? '';
-                                    });
+                                final bool levelWajibBelumDipilih =
+                                    menuKategori == 'makanan' &&
+                                    levelToppings.isNotEmpty &&
+                                    _selectedLevel.isEmpty;
+                                if (_levelRequiredButMissing != levelWajibBelumDipilih) {
+                                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                                    if (mounted) {
+                                      setState(() {
+                                        _levelRequiredButMissing = levelWajibBelumDipilih;
+                                      });
+                                    }
                                   });
                                 }
+
                                 if (widget.itemKustomisasiLama != null &&
                                     _selectedToppings.isEmpty) {
                                   final List<dynamic> namaToppingsLama =
@@ -360,9 +367,19 @@ class _DetailMenuScreenState extends State<DetailMenuScreen> {
                                         ),
                                       ),
                                       if (menuKategori == 'makanan' && levelToppings.isNotEmpty) ...[
-                                        const Text(
-                                          'PILIH LEVEL',
-                                          style: AppTextStyles.formLabel
+                                        Row(
+                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                          children: const [
+                                            Text('PILIH LEVEL', style: AppTextStyles.formLabel),
+                                            Text(
+                                              'Wajib',
+                                              style: TextStyle(
+                                                fontSize: 11,
+                                                color: AppColors.error,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
+                                          ],
                                         ),
                                         const SizedBox(height: 6),
                                         _buildLevelOptions(levelToppings),
@@ -492,27 +509,47 @@ class _DetailMenuScreenState extends State<DetailMenuScreen> {
           ),
         ],
       ),
-      child: Row(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          CustomQuantitySelector(
-            quantity: _quantity,
-            onIncrement: _increment,
-            onDecrement: _decrement,
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: PrimaryButton(
-              text:'Tambah  •  Rp ${_formatHarga(hargaSatuanTotal * _quantity)}',
-              icon: widget.itemKustomisasiLama != null
-                ? Icons.check_circle_outline
-                : Icons.shopping_cart_outlined,
-              borderRadius: 25,
-              backgroundColor: AppColors.darkRed,
-              textColor: Colors.white,
-              onPressed: (widget.menu.tersedia ?? true)
-                ? () => _simpanKeKeranjang(hargaSatuanTotal)
-                : null,
+          if (_levelRequiredButMissing)
+            const Padding(
+              padding: EdgeInsets.only(bottom: 8.0),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'Silakan pilih level terlebih dahulu',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: AppColors.error,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
             ),
+          Row(
+            children: [
+              CustomQuantitySelector(
+                quantity: _quantity,
+                onIncrement: _increment,
+                onDecrement: _decrement,
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: PrimaryButton(
+                  text:'Tambah  •  Rp ${_formatHarga(hargaSatuanTotal * _quantity)}',
+                  icon: widget.itemKustomisasiLama != null
+                    ? Icons.check_circle_outline
+                    : Icons.shopping_cart_outlined,
+                  borderRadius: 25,
+                  backgroundColor: AppColors.darkRed,
+                  textColor: Colors.white,
+                  onPressed: ((widget.menu.tersedia ?? true) && !_levelRequiredButMissing)
+                    ? () => _simpanKeKeranjang(hargaSatuanTotal)
+                    : null,
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -532,7 +569,10 @@ class _DetailMenuScreenState extends State<DetailMenuScreen> {
           dense: true,
           onChanged: (value) {
             if (value != null) {
-              setState(() => _selectedLevel = value);
+              setState(() {
+                _selectedLevel = value;
+                _levelRequiredButMissing = false;
+              });
             }
           },
         );

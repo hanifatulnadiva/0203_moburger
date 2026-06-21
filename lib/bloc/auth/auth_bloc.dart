@@ -84,5 +84,30 @@ class AuthBloc extends Bloc<AuthEvent, AuthState>{
         emit(AuthError(e.toString()));
       }
     });
+
+    on<UpdateProfileRequested>((event, emit) async {
+      emit(AuthLoading());
+      try {
+        final updatedUser = await repository.updateProfile(
+          id: event.id,
+          namaLengkap: event.namaLengkap,
+          nohp: event.nohp,
+        );
+
+        emit(Authenticated(updatedUser));
+      } catch (e) {
+        emit(AuthError(e.toString()));
+      }
+    });
+
+    on<ChangePasswordRequested>((event, emit) async {
+      emit(AuthLoading());
+      try {
+        await repository.changePassword(event.newPassword);
+        emit(AuthPasswordChangedSuccess());
+      } catch (e) {
+        emit(AuthError(e.toString()));
+      }
+    });
   }
 }

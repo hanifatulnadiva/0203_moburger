@@ -112,23 +112,6 @@ class DashboardHeader extends StatelessWidget {
                         onClear: onSearchClear,
                       ),
                     ),
-                    const SizedBox(width: 12),
-                    GestureDetector(
-                      onTap: onFilterOrScanTap,
-                      child: Container(
-                        width: 48,
-                        height: 48,
-                        decoration: BoxDecoration(
-                          color: AppColors.white,
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: Icon(
-                          isAdmin ? Icons.document_scanner_outlined : Icons.tune_rounded,
-                          color: AppColors.darkRed,
-                          size: 22,
-                        ),
-                      ),
-                    ),
                   ],
                 ),
               ],

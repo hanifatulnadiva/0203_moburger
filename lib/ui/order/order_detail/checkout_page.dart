@@ -53,6 +53,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           'nama_customer': widget.namaCustomer,
           'items': payloadItems,
           'payment_type': 'all',
+          'notes': currentItems
+            .map((e) => e['notes'] ?? '')
+            .where((e) => e.toString().isNotEmpty)
+            .join('\n'),
         },
       );
 

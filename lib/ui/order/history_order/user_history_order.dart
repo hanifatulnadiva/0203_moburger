@@ -24,9 +24,11 @@ class UserOrderHistoryScreen extends StatefulWidget {
 }
 
 class _UserOrderHistoryScreenState extends State<UserOrderHistoryScreen>
-    with AutomaticKeepAliveClientMixin {
+  with AutomaticKeepAliveClientMixin {
+    final ScrollController _scrollController = ScrollController();
   @override
   bool get wantKeepAlive => true;
+  
 
   @override
   void initState() {
@@ -38,6 +40,22 @@ class _UserOrderHistoryScreenState extends State<UserOrderHistoryScreen>
     final state = context.read<OrderBloc>().state;
     if (state is! OrderHistoryLoadSuccess) {
       context.read<OrderBloc>().add(LoadUserOrderHistoryEvent());
+    }
+  }
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    // Jika mencapai 200px dari bawah, load more
+    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
+      final state = context.read<OrderBloc>().state;
+      // Mencegah load berulang jika sudah loading
+      if (state is! OrderLoading) {
+        context.read<OrderBloc>().add(LoadUserOrderHistoryEvent(isRefresh: false));
+      }
     }
   }
 
@@ -95,11 +113,12 @@ class _UserOrderHistoryScreenState extends State<UserOrderHistoryScreen>
             }
             if (state is OrderHistoryLoadSuccess) {
               final all = state.orders;
+              final reachedMax = state.hasReachedMax;
               return TabBarView(children: [
-                _buildTabContent(all),
-                _buildTabContent(all.where((o) => o.status == 'diprosess').toList()),
-                _buildTabContent(all.where((o) => o.status == 'siap diambil').toList()),
-                _buildTabContent(all.where((o) => o.status == 'selesai').toList()),
+                _buildTabContent(all,reachedMax),
+                _buildTabContent(all.where((o) => o.status == 'diprosess').toList(),true),
+                _buildTabContent(all.where((o) => o.status == 'siap diambil').toList(), true),
+                _buildTabContent(all.where((o) => o.status == 'selesai').toList(), true),
               ]);
             }
             if (state is OrderFailure) {
@@ -112,7 +131,7 @@ class _UserOrderHistoryScreenState extends State<UserOrderHistoryScreen>
     );
   }
 
-  Widget _buildTabContent(List<OrderModel> orders) {
+  Widget _buildTabContent(List<OrderModel> orders, bool hasReachedMax) {
     if (orders.isEmpty) {
       return const EmptyStateWidget(
         icon: Icons.assignment_outlined,
@@ -123,12 +142,22 @@ class _UserOrderHistoryScreenState extends State<UserOrderHistoryScreen>
     return RefreshIndicator(
       color: AppColors.orange,
       onRefresh: () async {
-        context.read<OrderBloc>().add(LoadUserOrderHistoryEvent());
+        context.read<OrderBloc>().add(LoadUserOrderHistoryEvent(isRefresh: true));
       },
       child: ListView.builder(
+        controller: _scrollController,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        itemCount: orders.length,
-        itemBuilder: (context, i) => _buildHistoryCard(orders[i]),
+        itemCount: hasReachedMax ? orders.length : orders.length + 1,
+        itemBuilder: (context, i) {
+          if (i < orders.length) {
+            return _buildHistoryCard(orders[i]);
+          } else {
+            return const Padding(
+              padding: EdgeInsets.symmetric(vertical: 20),
+              child: Center(child: CircularProgressIndicator(color: AppColors.orange)),
+            );
+          }
+        },
       ),
     );
   }
@@ -178,24 +207,35 @@ class _UserOrderHistoryScreenState extends State<UserOrderHistoryScreen>
                 ),
                 child: const Icon(Icons.lunch_dining, color: AppColors.darkRed),
               ),
-              const SizedBox(width: 14),
+              const SizedBox(width: 10),
               // FIX: Wrapped in Expanded to prevent overflow
               Expanded(
-                child: Column(
-                  children: [
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Order Number
+                  Text(
+                    'Order: ${order.order_number}',
+                    style: AppTextStyles.judul.copyWith(fontSize: 14, color: AppColors.darkRed),
+                  ),
+                  const SizedBox(height: 4),
+                  // Nama Customer
+                  Text(
+                    order.nama_customer ?? 'Pelanggan',
+                    style: AppTextStyles.bodyRegular.copyWith(fontSize: 14, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 4),
+                  // Catatan (Opsional)
+                  if (order.notes != null && order.notes!.isNotEmpty)
                     Text(
-                      order.nama_customer ?? 'Pelanggan',
-                      style: AppTextStyles.judul.copyWith(fontSize: 15),
+                      'Catatan: ${order.notes}',
+                      style: AppTextStyles.bodyRegular.copyWith(fontSize: 12, fontStyle: FontStyle.italic),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    Text(
-                      'Tipe: ${order.order_type.toUpperCase()}',
-                      style: AppTextStyles.bodyRegular.copyWith(fontSize: 12),
-                    ),
-                  ],
-                ),
+                ],
               ),
+            ),
               const SizedBox(width: 8),
               Text(_formatPrice(order.total_price), style: AppTextStyles.formLabel.copyWith(fontSize: 14)),
             ],

@@ -117,6 +117,7 @@ class _CustomerMenuScreenState extends State<CustomerMenuScreen> {
         'id': menuId,
         'nama': item.nama_menu ?? 'Menu',
         'harga': menuHarga,
+        'image_url':item.image_url ?? '',
         'qty': 1,
         'level': '',
         'toppings': [],

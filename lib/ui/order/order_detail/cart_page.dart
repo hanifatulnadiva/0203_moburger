@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:moburger/core/contants/colors.dart';
 import 'package:moburger/core/contants/text.dart';
-import 'package:moburger/core/widget/custom_card.dart';
 import 'package:moburger/core/widget/custom_button.dart';
 import 'package:moburger/core/widget/empty_state_widget.dart';
 import 'package:moburger/bloc/order/order_bloc.dart';

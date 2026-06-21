@@ -19,3 +19,23 @@ class RegisterRequested extends AuthEvent{
   List<Object> get props => [nama_lengkap, nohp,email,password];
 }
 class LogoutRequested extends AuthEvent{}
+
+class UpdateProfileRequested extends AuthEvent {
+  final String id,namaLengkap, nohp;
+
+  UpdateProfileRequested({
+    required this.id,
+    required this.namaLengkap,
+    required this.nohp,
+  });
+  @override
+  List<Object> get props => [id, namaLengkap, nohp];
+}
+
+class ChangePasswordRequested extends AuthEvent {
+  final String newPassword;
+
+  ChangePasswordRequested(this.newPassword);
+  @override
+  List<Object> get props => [newPassword];
+}
