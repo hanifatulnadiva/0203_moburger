@@ -1,10 +1,6 @@
-import 'dart:io';
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:moburger/bloc/topping/topping_bloc.dart';
 import 'package:moburger/bloc/topping/topping_event.dart';
 import 'package:moburger/core/contants/colors.dart';
@@ -28,10 +24,6 @@ class _FormToppingScreensState extends State<FormToppingScreens> {
   final TextEditingController _namaToppingController = TextEditingController();
   final TextEditingController _hargaController = TextEditingController();
 
-  final ImagePicker _picker = ImagePicker();
-  XFile? _selectedImage;
-  String? _oldImageUrl;
-
   String? _selectedKategori;
   String? _selectedTersedia;
 
@@ -45,7 +37,6 @@ class _FormToppingScreensState extends State<FormToppingScreens> {
       _namaToppingController.text = widget.topping.nama_topping ?? '';
       _hargaController.text = widget.topping.harga?.toString() ?? '';
       _selectedKategori = widget.topping.kategori;
-      _oldImageUrl = widget.topping.image_url;
       if (widget.topping.tersedia != null) {
         _selectedTersedia = widget.topping.tersedia == true ? 'Tersedia' : 'Habis';
       } else {
@@ -76,16 +67,23 @@ class _FormToppingScreensState extends State<FormToppingScreens> {
         ),
       );
 
-      // Pengecekan Duplikat
+      // PERBAIKAN: Jangan pakai maybeSingle() jika ingin mengecek dengan looping/filter
+      // Kita ambil list dari database yang namanya mirip
       final response = await _supabase
           .from('topping')
-          .select('id, nama_topping');
+          .select('id, nama_topping')
+          .ilike('nama_topping', namaInput);
 
       bool isDuplicate = false;
-      if (response != null && (response as List).isNotEmpty) {
+      
+      // Pastikan response adalah List
+      if (response != null && (response is List)) {
         for (var item in response) {
           String dbName = (item['nama_topping'] as String).trim().toLowerCase();
+          
+          // Jika nama sama, cek ID-nya
           if (dbName == namaInputLower) {
+            // Jika kita sedang Edit, abaikan record milik kita sendiri
             if (widget.topping != null && item['id'] == widget.topping.id) {
               continue;
             }
@@ -113,17 +111,13 @@ class _FormToppingScreensState extends State<FormToppingScreens> {
             ),
             backgroundColor: Colors.redAccent,
             behavior: SnackBarBehavior.floating,
-            duration: const Duration(seconds: 4),
-            action: SnackBarAction(
-              label: 'TUTUP',
-              textColor: Colors.white,
-              onPressed: () => ScaffoldMessenger.of(context).hideCurrentSnackBar(),
-            ),
+            duration: const Duration(seconds: 1),
           ),
         );
         return;
       }
 
+      // Jika lolos, kirim ke BLoC
       final Map<String, dynamic> toppingData = {
         'nama_topping': namaInput,
         'harga': int.parse(_hargaController.text.trim()),
@@ -138,8 +132,8 @@ class _FormToppingScreensState extends State<FormToppingScreens> {
       }
 
       if (mounted) {
-        Navigator.pop(context);
-        Navigator.pop(context);
+        Navigator.pop(context); // Tutup loading
+        Navigator.pop(context); // Kembali
       }
     } catch (e) {
       if (mounted) Navigator.pop(context);
@@ -148,7 +142,6 @@ class _FormToppingScreensState extends State<FormToppingScreens> {
       );
     }
   }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
