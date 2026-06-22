@@ -35,9 +35,12 @@ class ReportBloc extends Bloc<ReportEvent, ReportState> {
         repository.fetchReport(trendStart, endOfToday),
       ]);
 
+      final ReportModel trendReport = results[1];
+      trendReport.revenueTrend.sort((a, b) => a.date.compareTo(b.date));
+
       emit(ReportLoaded(
         summary: results[0],
-        trend: results[1],
+        trend: trendReport,
         activeRange: DateTimeRange(start: startOfToday, end: endOfToday),
         isDefaultView: true,
       ));
@@ -52,7 +55,6 @@ class ReportBloc extends Bloc<ReportEvent, ReportState> {
   ) async {
     emit(ReportLoading());
     try {
-      // Pastikan end date mencakup keseluruhan hari yang dipilih.
       final start = DateTime(
         event.range.start.year,
         event.range.start.month,
@@ -65,10 +67,9 @@ class ReportBloc extends Bloc<ReportEvent, ReportState> {
       ).add(const Duration(days: 1)).subtract(const Duration(milliseconds: 1));
 
       final data = await repository.fetchReport(start, end);
-
+      data.revenueTrend.sort((a, b) => a.date.compareTo(b.date));
       emit(ReportLoaded(
         summary: data,
-        // Untuk custom range, tren grafik = data yang sama (mengikuti filter).
         trend: data,
         activeRange: DateTimeRange(start: start, end: end),
         isDefaultView: false,

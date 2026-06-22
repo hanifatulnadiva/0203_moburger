@@ -252,7 +252,6 @@ class _ReportScreenState extends State<ReportScreen> {
               (t) => _buildRankRow(t.name, t.count, AppColors.yellow),
             ),
           ],
-
           const SizedBox(height: 100),
         ],
       ),
