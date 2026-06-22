@@ -18,6 +18,18 @@ Proses pemesanan burger secara konvensional (datang langsung ke toko atau memesa
 
 ---
 
+## 💡 Proposed Solution
+
+MoBurger adalah solusi aplikasi *mobile-first* yang dikembangkan menggunakan framework **Flutter** dengan pendekatan arsitektur **BLoC (Business Logic Component)** untuk menjamin pemisahan logika bisnis dan tampilan UI yang bersih serta mudah di-*maintain*.
+
+Untuk mengatasi kendala operasional yang ada, MoBurger mengusulkan solusi integratif berikut:
+
+* **Sistem Manajemen Terpusat (Centralized Backend):** Menggunakan **Supabase** sebagai *backend-as-a-service*, MoBurger menyediakan sinkronisasi data antara admin dan pelanggan. Hal ini menghilangkan disparitas informasi mengenai ketersediaan menu dan status pesanan.
+* **Otomasi Transaksi & Pelacakan:** Dengan mengintegrasikan **Midtrans**, proses verifikasi pembayaran tidak lagi manual, sehingga mengurangi *human error*. Selain itu, penggunaan **QR Code** sebagai bukti pengambilan pesanan memastikan validasi di sisi *merchant* menjadi lebih cepat dan aman.
+* **Efisiensi Alur Kerja (Workflow Automation):** Admin diberikan *dashboard* khusus yang mampu menampilkan performa penjualan secara visual (**fl_chart**). Dengan fitur **Export to Excel**, kebutuhan pelaporan yang sebelumnya memakan waktu berjam-jam kini dapat dilakukan hanya dengan satu klik.
+* **User-Centric Experience:** Aplikasi dirancang dengan alur yang intuitif bagi pelanggan, mulai dari kustomisasi pesanan (topping), proses *checkout* yang transparan, hingga status pesanan secara *real-time*, yang secara langsung meningkatkan kepercayaan dan kenyamanan pengguna.
+* **Scalability & Performance:** Dengan struktur folder berbasis *Clean Architecture* dan pemanfaatan **flutter_bloc**, aplikasi ini memiliki tingkat *reusability* komponen yang tinggi, memudahkan pengembangan fitur di masa depan.
+  
 ## ✨ Fitur (Features)
 
 ### Customer
@@ -51,6 +63,7 @@ Proses pemesanan burger secara konvensional (datang langsung ke toko atau memesa
 
 Struktur berikut difokuskan pada folder `lib/` (kode sumber utama) dan `assets/`. Folder hasil build (`build/`, `.dart_tool/`, `.gradle/`, dll.) tidak ditampilkan karena bersifat sementara/auto-generated.
 
+```
 moburger/
 
 ├── lib/
@@ -132,6 +145,7 @@ moburger/
 ├── test/                            # Unit/widget test
 
 └── pubspec.yaml                     # Daftar dependencies & konfigurasi project
+```
 
 ### Teknologi Utama
 | Kategori | Teknologi |
