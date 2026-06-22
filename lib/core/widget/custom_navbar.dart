@@ -1,17 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:moburger/core/contants/colors.dart';
+import 'package:badges/badges.dart' as badges;
 
 enum TabKey { home, dashboard, order, menu, cart, report, profile }
 
 class CustomBottomBar extends StatelessWidget {
   final TabKey activeTab;
   final String userRole; 
+  final int cartCount;
   final ValueChanged<TabKey> onTabPress;
 
   const CustomBottomBar({
     super.key,
     required this.activeTab,
     required this.userRole,
+    this.cartCount = 0,
     required this.onTabPress,
   });
 
@@ -60,6 +63,21 @@ class CustomBottomBar extends StatelessWidget {
           final String label = item['label'];
           final bool isActive = activeTab == key;
 
+          Widget iconWidget;
+          if (key == TabKey.cart) {
+            iconWidget = badges.Badge(
+              badgeContent: Text('$cartCount', style: const TextStyle(color: Colors.white, fontSize: 10)),
+              badgeStyle: const badges.BadgeStyle(badgeColor: Colors.red),
+              showBadge: cartCount > 0, // Hanya tampil jika ada barang
+              child: Icon(isActive ? item['activeIcon'] : item['icon'], color: isActive ? AppColors.orange : AppColors.textSecondary),
+            );
+          } else {
+            iconWidget = Icon(
+              isActive ? item['activeIcon'] : item['icon'],
+              color: isActive ? AppColors.orange : AppColors.textSecondary,
+              size: 24,
+            );
+          }
           return Expanded(
             child: GestureDetector(
               behavior: HitTestBehavior.opaque,
@@ -67,11 +85,7 @@ class CustomBottomBar extends StatelessWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(
-                    isActive ? item['activeIcon'] : item['icon'],
-                    color: isActive ? AppColors.orange : AppColors.textSecondary,
-                    size: 24,
-                  ),
+                  iconWidget, 
                   const SizedBox(height: 4),
                   Text(
                     label,
