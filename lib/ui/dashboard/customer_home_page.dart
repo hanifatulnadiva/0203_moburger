@@ -127,10 +127,19 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen> {
           index: activeIndex,
           children: tabs.map((tab) => _buildPageContent(tab)).toList(),
         ),
-        bottomNavigationBar: CustomBottomBar(
-          activeTab: _activeTab,
-          userRole: widget.userRole,
-          onTabPress: (TabKey selectedTab) => setState(() => _activeTab = selectedTab),
+        bottomNavigationBar: BlocBuilder<CartBloc, CartState>(
+          builder: (context, cartState) {
+            int totalItems = 0;
+            if (cartState is CartLoaded) {
+              totalItems = cartState.cartItems.fold(0, (sum, item) => sum + (item['qty'] as int));
+            }
+            return CustomBottomBar(
+              activeTab: _activeTab,
+              userRole: widget.userRole,
+              cartCount: totalItems, 
+              onTabPress: (TabKey selectedTab) => setState(() => _activeTab = selectedTab),
+            );
+          },
         ),
       ),
     );
