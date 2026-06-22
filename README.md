@@ -165,10 +165,10 @@ moburger/
 
 | Minggu | Progress |
 | :--- | :--- |
-| **1** | 1. Inisialisasi project Flutter, setup struktur folder (bloc, core, data, ui).<br>2. Konfigurasi Supabase.<br>3. Implementasi autentikasi (login & register) dan role-based navigation (admin/customer).<br>4. Implementasi modul menu (CRUD menu, topping) untuk admin & tampilan menu untuk customer. |
-| **2** | 1. Implementasi keranjang belanja (cart) dan alur checkout.<br>2. Integrasi pembayaran online via Midtrans (WebView).<br>3. Implementasi pelacakan status pesanan real-time & QR code pengambilan pesanan. |
-| **3** | 1. Implementasi riwayat pesanan admin (filter status & pagination) dan laporan penjualan (chart + export Excel).<br>2. Perbaikan bug (RLS policy, race condition registrasi, status mismatch), polishing UI, dan dokumentasi. |
-
+| **1 (2 juni - 6 juni)** | 1. Inisialisasi project Flutter, setup struktur folder (bloc, core, data, ui).<br>2. Konfigurasi Supabase.<br>3. Implementasi autentikasi (login & register) dan role-based navigation (admin/customer).<br>4. implementasi widegt untuk bottom bar, alert , search, header dan splach screen <br> 5. implementasi dahboard customer |
+| **2 (7 juni -13 juni 2026)** | 1. Implementasi modul menu (CRUD menu, topping) untuk admin & tampilan menu untuk customer. <br> 2. Implementasi keranjang belanja (cart) dan alur checkout.<br>2. Integrasi pembayaran online via Midtrans (WebView). |
+| **3 (14 juni - 20 juni 2026)** | 1. Implementasi riwayat pesanan admin (filter status & pagination) dan laporan penjualan (chart + export Excel).<br>2. Perbaikan bug (RLS policy, race condition registrasi, status mismatch) <br>3. Implementasi pelacakan status pesanan real-time & QR code pengambilan pesanan. |
+|**4 (21 juni-22 juni 2026)**| polishing UI, validasi dan dokumentasi|
 ---
 
 ## 🚀 Cara Menjalankan Project
