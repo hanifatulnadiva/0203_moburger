@@ -53,113 +53,201 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  void _showEditDialog() { 
-    showDialog(
+  // ─── Dialog Edit Profil ───────────────────────────────────────────────────
+  void _showEditDialog() {
+    showModalBottomSheet(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppColors.background,
-        title: const Text("Edit Profile"),
-        content: Form(
-          key: formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              CustomTextField(
-                controller: _nameController,
-                hintText: "Nama Lengkap",
-                prefixIcon: Icons.person,
-                validator: (val) => (val == null || val.isEmpty) ? "Nama tidak boleh kosong" : null,
-              ),
-              const SizedBox(height: 10),
-              CustomTextField(
-                controller: _phoneController,
-                hintText: "No HP",
-                prefixIcon: Icons.phone,
-                validator: (val) => (val == null || val.length < 10) ? "No HP tidak valid" : null,
-              ),
-            ],
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return Padding(
+          // Supaya dialog naik saat keyboard muncul
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
           ),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Batal")),
-          ElevatedButton(
-            onPressed: () {
-              if (formKey.currentState!.validate()) {
-                context.read<AuthBloc>().add(UpdateProfileRequested(
-                      id: widget.user.id,
-                      namaLengkap: _nameController.text,
-                      nohp: _phoneController.text,
-                    ));
-                Navigator.pop(context);
-              }
-            },
-            child: const Text("Simpan"),
+          child: Container(
+            decoration: const BoxDecoration(
+              color: AppColors.background,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // ── Header ──────────────────────────────────────────────────
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 24),
+                  decoration: const BoxDecoration(
+                    color: AppColors.darkRed,
+                    borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: AppColors.yellow.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Icon(Icons.person_outline,
+                            color: AppColors.yellow, size: 22),
+                      ),
+                      const SizedBox(width: 12),
+                      const Text(
+                        "Edit Profil",
+                        style: TextStyle(
+                          color: AppColors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const Spacer(),
+                      GestureDetector(
+                        onTap: () => Navigator.pop(context),
+                        child: Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: AppColors.white.withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Icon(Icons.close,
+                              color: AppColors.white, size: 18),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // ── Body ────────────────────────────────────────────────────
+                Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Form(
+                    key: formKey,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _sectionLabel("Nama Lengkap"),
+                        const SizedBox(height: 8),
+                        CustomTextField(
+                          controller: _nameController,
+                          hintText: "Masukkan nama lengkap",
+                          prefixIcon: Icons.person,
+                          validator: (val) => (val == null || val.isEmpty)
+                              ? "Nama tidak boleh kosong"
+                              : null,
+                        ),
+                        const SizedBox(height: 16),
+                        _sectionLabel("Nomor HP"),
+                        const SizedBox(height: 8),
+                        CustomTextField(
+                          controller: _phoneController,
+                          hintText: "Masukkan nomor HP",
+                          prefixIcon: Icons.phone,
+                          keyboardType: TextInputType.phone,
+                          validator: (val) =>
+                              (val == null || val.length < 10)
+                                  ? "No HP tidak valid"
+                                  : null,
+                        ),
+                        const SizedBox(height: 24),
+
+                        // ── Tombol ─────────────────────────────────────────
+                        Row(
+                          children: [
+                            Expanded(
+                              child: OutlinedButton(
+                                onPressed: () => Navigator.pop(context),
+                                style: OutlinedButton.styleFrom(
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 14),
+                                  side: const BorderSide(
+                                      color: AppColors.darkRed),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                                child: const Text(
+                                  "Batal",
+                                  style: TextStyle(
+                                      color: AppColors.darkRed,
+                                      fontWeight: FontWeight.w600),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: ElevatedButton(
+                                onPressed: () {
+                                  if (formKey.currentState!.validate()) {
+                                    context.read<AuthBloc>().add(
+                                          UpdateProfileRequested(
+                                            id: widget.user.id,
+                                            namaLengkap: _nameController.text,
+                                            nohp: _phoneController.text,
+                                          ),
+                                        );
+                                    Navigator.pop(context);
+                                  }
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.orange,
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 14),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  elevation: 0,
+                                ),
+                                child: const Text(
+                                  "Simpan",
+                                  style: TextStyle(
+                                      color: AppColors.white,
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 15),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 30),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
-        ],
+        );
+      },
+    );
+  }
+
+  
+
+  // ─── Helper ───────────────────────────────────────────────────────────────
+  Widget _sectionLabel(String text) {
+    return Text(
+      text,
+      style: const TextStyle(
+        color: AppColors.textPrimary,
+        fontSize: 13,
+        fontWeight: FontWeight.w600,
       ),
     );
   }
 
-  void _showChangePassword() {
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("Ganti Password"),
-        content: Form(
-          key: formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              CustomTextField(
-                controller: passwordController,
-                hintText: "Password baru",
-                prefixIcon: Icons.lock,
-                obscureText: true,
-                validator: (val) {
-                  if (val == null || val.length < AppConstants.minPasswordLength) {
-                    return "Minimal ${AppConstants.minPasswordLength} karakter";
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 10),
-              CustomTextField(
-                controller: confirmPasswordController,
-                hintText: "Konfirmasi password baru",
-                prefixIcon: Icons.lock_outline,
-                obscureText: true,
-                validator: (val) {
-                  if (val != passwordController.text) {
-                    return "Password tidak cocok";
-                  }
-                  return null;
-                },
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Batal")),
-          ElevatedButton(
-            onPressed: () {
-              if (formKey.currentState!.validate()) {
-                context.read<AuthBloc>().add(ChangePasswordRequested(passwordController.text));
-                Navigator.pop(context);
-              }
-            },
-            child: const Text("Update"),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMenuItem(IconData icon, String title, VoidCallback onTap, {bool isLogout = false}) {
+  Widget _buildMenuItem(IconData icon, String title, VoidCallback onTap,
+      {bool isLogout = false}) {
     return ListTile(
-      leading: Icon(icon, color: isLogout ? AppColors.error : AppColors.orange),
-      title: Text(title, style: TextStyle(color: isLogout ? AppColors.error : AppColors.textPrimary, fontWeight: FontWeight.w600)),
-      trailing: const Icon(Icons.chevron_right, color: AppColors.textSecondary),
+      leading:
+          Icon(icon, color: isLogout ? AppColors.error : AppColors.orange),
+      title: Text(title,
+          style: TextStyle(
+              color:
+                  isLogout ? AppColors.error : AppColors.textPrimary,
+              fontWeight: FontWeight.w600)),
+      trailing:
+          const Icon(Icons.chevron_right, color: AppColors.textSecondary),
       onTap: onTap,
     );
   }
@@ -168,7 +256,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget build(BuildContext context) {
     return BlocBuilder<AuthBloc, AuthState>(
       builder: (context, state) {
-        final currentUser = (state is Authenticated) ? state.user : widget.user;
+        final currentUser =
+            (state is Authenticated) ? state.user : widget.user;
 
         return BlocListener<AuthBloc, AuthState>(
           listener: (context, state) {
@@ -179,14 +268,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
               );
             } else if (state is AuthError) {
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text(state.message), backgroundColor: AppColors.error),
+                SnackBar(
+                    content: Text(state.message),
+                    backgroundColor: AppColors.error),
               );
             }
           },
           child: Scaffold(
             backgroundColor: AppColors.darkRed,
             appBar: AppBar(
-              title: const Text("Profil", style: TextStyle(color: AppColors.white)),
+              title: const Text("Profil",
+                  style: TextStyle(color: AppColors.white)),
               backgroundColor: Colors.transparent,
               elevation: 0,
               iconTheme: const IconThemeData(color: AppColors.white),
@@ -199,28 +291,39 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   child: Icon(Icons.person, size: 60, color: AppColors.darkRed),
                 ),
                 const SizedBox(height: 15),
-                Text(currentUser.nama_lengkap, style: const TextStyle(color: AppColors.white, fontSize: 20, fontWeight: FontWeight.bold)),
-                Text(currentUser.email, style: const TextStyle(color: AppColors.white)),
+                Text(currentUser.nama_lengkap,
+                    style: const TextStyle(
+                        color: AppColors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold)),
+                Text(currentUser.email,
+                    style: const TextStyle(color: AppColors.white)),
                 const SizedBox(height: 30),
                 Expanded(
                   child: Container(
                     decoration: const BoxDecoration(
                       color: AppColors.background,
-                      borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+                      borderRadius:
+                          BorderRadius.vertical(top: Radius.circular(30)),
                     ),
                     child: ListView(
                       padding: const EdgeInsets.all(20),
                       children: [
-                        _buildMenuItem(Icons.info_outline, "Tentang Moburger", () {
+                        _buildMenuItem(Icons.info_outline, "Tentang Moburger",
+                            () {
                           Navigator.push(
-                            context, 
-                            MaterialPageRoute(builder: (context) => const AboutScreen()),
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => const AboutScreen()),
                           );
                         }),
-                        _buildMenuItem(Icons.person_outline, "Detail User", _showEditDialog),
-                        _buildMenuItem(Icons.lock_outline, "Ganti Password", _showChangePassword),
+                        _buildMenuItem(
+                            Icons.person_outline, "Detail User", _showEditDialog),
+                        _buildMenuItem(
+                            Icons.lock_outline, "Ganti Password", _showChangePassword),
                         const Divider(color: AppColors.textSecondary),
-                        _buildMenuItem(Icons.logout, "Keluar", _handleLogout, isLogout: true),
+                        _buildMenuItem(Icons.logout, "Keluar", _handleLogout,
+                            isLogout: true),
                       ],
                     ),
                   ),
