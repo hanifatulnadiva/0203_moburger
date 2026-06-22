@@ -104,7 +104,12 @@ class AuthBloc extends Bloc<AuthEvent, AuthState>{
       emit(AuthLoading());
       try {
         await repository.changePassword(event.newPassword);
-        emit(AuthPasswordChangedSuccess());
+        final user = await repository.getCurrentUser();
+        if (user != null) {
+          emit(Authenticated(user));
+        } else {
+          emit(Unauthenticated());
+        }
       } catch (e) {
         emit(AuthError(e.toString()));
       }
